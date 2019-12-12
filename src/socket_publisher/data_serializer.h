@@ -36,10 +36,8 @@ public:
     std::string serialize_messages(const std::vector<std::string>& tags, const std::vector<std::string>& messages);
 
     std::string serialize_map_diff();
-    void serialize_map_diff_binary(unsigned char *data, unsigned int *length);
 
     std::string serialize_latest_frame(const unsigned int image_quality_);
-    std::string serialize_latest_frame_binary(const unsigned int image_quality_, unsigned char *data, unsigned int *length);
 
     static std::string serialized_reset_signal_;
 
@@ -66,12 +64,6 @@ private:
                                       const std::vector<openvslam::data::landmark*>& all_landmarks,
                                       const std::set<openvslam::data::landmark*>& local_landmarks,
                                       const openvslam::Mat44_t& current_camera_pose);
-    std::string serialize_as_binary(const std::vector<openvslam::data::keyframe*>& keyfrms,
-                                      const std::vector<openvslam::data::landmark*>& all_landmarks,
-                                      const std::set<openvslam::data::landmark*>& local_landmarks,
-                                      const openvslam::Mat44_t& current_camera_pose,
-                                      unsigned char *data,
-                                      unsigned int *length);
 
     std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 };
