@@ -19,19 +19,29 @@
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
 
-EMSCRIPTEN_KEEPALIVE void mono_tracking(
+class MonoState {
+  std::shared_ptr<openvslam::config> cfg;
+  openvslam::system SLAM;
+  cv::Mat mask;
+  cv::Mat frame;
+  double timestamp;
+  std::vector<double> track_times;
+  unsigned int num_frame;
+  bool is_not_end;
+
+public:
+  MonoState(
     const int rows, const int cols, const int type,
     const std::string& config_file_data,
-    const std::string& vocab_file_data,
-    const float scale
-) {
-    std::shared_ptr<openvslam::config> cfg = std::make_shared<openvslam::config>(config_file_data);
-
-    // load the mask image
-    const cv::Mat mask; // = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
-
-    // build a SLAM system
-    openvslam::system SLAM(cfg, vocab_file_data);
+    const std::string& vocab_file_data
+  ) :
+    cfg(std::make_shared<openvslam::config>(config_file_data)),
+    SLAM(cfg, vocab_file_data),
+    frame(rows, cols, type),
+    timestamp(0.0),
+    num_frame(0),
+    is_not_end(true)
+  {
     // startup the SLAM process
     SLAM.startup();
 
@@ -50,7 +60,7 @@ EMSCRIPTEN_KEEPALIVE void mono_tracking(
         return;
     } */
 
-    cv::Mat frame(rows, cols, type);
+    /* cv::Mat frame(rows, cols, type);
     double timestamp = 0.0;
     std::vector<double> track_times;
 
@@ -59,7 +69,7 @@ EMSCRIPTEN_KEEPALIVE void mono_tracking(
     bool is_not_end = true;
     // run the SLAM in another thread
     std::thread thread([&]() {
-        while (is_not_end) {
+        if (is_not_end) {
             // check if the termination of SLAM system is requested or not
             if (SLAM.terminate_is_requested()) {
                 break;
@@ -86,12 +96,7 @@ EMSCRIPTEN_KEEPALIVE void mono_tracking(
             timestamp += 1.0 / cfg->camera_->fps_;
             ++num_frame;
         }
-
-        // wait until the loop BA is finished
-        while (SLAM.loop_BA_is_running()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(5000));
-        }
-    });
+    }); */
 
     // run the viewer in the current thread
 /* #ifdef USE_PANGOLIN_VIEWER
@@ -100,20 +105,67 @@ EMSCRIPTEN_KEEPALIVE void mono_tracking(
     publisher.run();
 #endif */
 
-    thread.join();
+    // thread.join();
+  }
+  ~MonoState() {
+    // wait until the loop BA is finished
+    while (SLAM.loop_BA_is_running()) {
+      std::this_thread::sleep_for(std::chrono::microseconds(5000));
+    }
 
-    // shutdown the SLAM process
     SLAM.shutdown();
+  }
+  unsigned char *getFrameBuf() {
+    return frame.ptr();
+  }
+  void tick() {
+    // if (is_not_end) {
+        // check if the termination of SLAM system is requested or not
+        if (SLAM.terminate_is_requested()) {
+            return;
+        }
 
-    /* if (!map_db_path.empty()) {
-        // output the map database
-        SLAM.save_map_database(map_db_path);
-    } */
+        // is_not_end = video.read(frame); // XXX
+        // memcpy(frame.ptr(), frameBuf, frame.total() * frame.elemSize());
+        /* if (frame.empty()) {
+            continue;
+        } */
+        /*if (scale != 1.0) {
+            cv::resize(frame, frame, cv::Size(), scale, scale, cv::INTER_LINEAR);
+        } */
 
-    std::sort(track_times.begin(), track_times.end());
-    const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
-    std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
-    std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
+        const auto tp_1 = std::chrono::steady_clock::now();
+
+        // input the current frame and estimate the camera pose
+        SLAM.feed_monocular_frame(frame, timestamp, mask);
+
+        const auto tp_2 = std::chrono::steady_clock::now();
+
+        const auto track_time = std::chrono::duration_cast<std::chrono::duration<double>>(tp_2 - tp_1).count();
+        track_times.push_back(track_time);
+
+        timestamp += 1.0 / cfg->camera_->fps_;
+        ++num_frame;
+    // }
+  }
+};
+
+EMSCRIPTEN_KEEPALIVE MonoState *create_mono(
+    const int rows, const int cols, const int type,
+    const char *config_file_data,
+    unsigned int config_file_data_size,
+    const char *vocab_file_data,
+    unsigned int vocab_file_data_size
+) {
+    std::string config_file_data_string(config_file_data, config_file_data_size);
+    std::string vocab_file_data_string(vocab_file_data, vocab_file_data_size);
+    return new MonoState(rows, cols, type, config_file_data_string, vocab_file_data_string);
+}
+EMSCRIPTEN_KEEPALIVE unsigned char *get_framebuf_mono(MonoState *monoState) {
+    return monoState->getFrameBuf();
+}
+EMSCRIPTEN_KEEPALIVE void tick_mono(MonoState *monoState) {
+    monoState->tick();
 }
 
 EMSCRIPTEN_KEEPALIVE void stereo_tracking(
