@@ -19,15 +19,18 @@
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
 
+#include <socket_publisher/data_serializer2.h>
+
 class MonoState {
   std::shared_ptr<openvslam::config> cfg;
   openvslam::system SLAM;
   cv::Mat mask;
   cv::Mat frame;
   double timestamp;
-  std::vector<double> track_times;
+  // std::vector<double> track_times;
   unsigned int num_frame;
   bool is_not_end;
+  std::unique_ptr<data_serializer2> data_serializer2_;
 
 public:
   MonoState(
@@ -44,6 +47,13 @@ public:
   {
     // startup the SLAM process
     SLAM.startup();
+
+    auto frame_publisher = SLAM.get_frame_publisher();
+    auto map_publisher = SLAM.get_map_publisher();
+    const auto camera = cfg->camera_;
+    const auto img_cols = (camera->cols_ < 1) ? 640 : camera->cols_;
+    const auto img_rows = (camera->rows_ < 1) ? 480 : camera->rows_;
+    data_serializer2_.reset(new data_serializer2(frame_publisher, map_publisher, img_cols, img_rows));
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
@@ -118,7 +128,7 @@ public:
   unsigned char *getFrameBuf() {
     return frame.ptr();
   }
-  void tick() {
+  void pushFrame() {
     // if (is_not_end) {
         // check if the termination of SLAM system is requested or not
         if (SLAM.terminate_is_requested()) {
@@ -134,19 +144,22 @@ public:
             cv::resize(frame, frame, cv::Size(), scale, scale, cv::INTER_LINEAR);
         } */
 
-        const auto tp_1 = std::chrono::steady_clock::now();
+        // const auto tp_1 = std::chrono::steady_clock::now();
 
         // input the current frame and estimate the camera pose
         SLAM.feed_monocular_frame(frame, timestamp, mask);
 
-        const auto tp_2 = std::chrono::steady_clock::now();
+        /* const auto tp_2 = std::chrono::steady_clock::now();
 
         const auto track_time = std::chrono::duration_cast<std::chrono::duration<double>>(tp_2 - tp_1).count();
-        track_times.push_back(track_time);
+        track_times.push_back(track_time); */
 
         timestamp += 1.0 / cfg->camera_->fps_;
         ++num_frame;
     // }
+  }
+  void pullUpdate(unsigned char *data, unsigned int *length) {
+    data_serializer2_->serialize_map_diff_binary(data, length);
   }
 };
 
@@ -164,8 +177,11 @@ EMSCRIPTEN_KEEPALIVE MonoState *create_mono(
 EMSCRIPTEN_KEEPALIVE unsigned char *get_framebuf_mono(MonoState *monoState) {
     return monoState->getFrameBuf();
 }
-EMSCRIPTEN_KEEPALIVE void tick_mono(MonoState *monoState) {
-    monoState->tick();
+EMSCRIPTEN_KEEPALIVE void push_frame_mono(MonoState *monoState) {
+    monoState->pushFrame();
+}
+EMSCRIPTEN_KEEPALIVE void pull_update_mono(MonoState *monoState, unsigned char *data, unsigned int *length) {
+    monoState->pullUpdate(data, length);
 }
 
 EMSCRIPTEN_KEEPALIVE void stereo_tracking(

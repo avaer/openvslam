@@ -6,7 +6,7 @@
 #include <memory>
 
 #include <Eigen/Core>
-#include <sio_client.h>
+// #include <sio_client.h>
 #include <opencv2/core.hpp>
 
 namespace openvslam {
@@ -27,19 +27,19 @@ class map_publisher;
 
 namespace socket_publisher {
 
-class data_serializer {
+class data_serializer2 {
 public:
-    data_serializer(const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
+    data_serializer2(const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
                     const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher,
                     const unsigned int image_width, const unsigned int image_height);
 
     std::string serialize_messages(const std::vector<std::string>& tags, const std::vector<std::string>& messages);
 
-    std::string serialize_map_diff();
+    // std::string serialize_map_diff();
     void serialize_map_diff_binary(unsigned char *data, unsigned int *length);
 
-    std::string serialize_latest_frame(const unsigned int image_quality_);
-    std::string serialize_latest_frame_binary(const unsigned int image_quality_, unsigned char *data, unsigned int *length);
+    // std::string serialize_latest_frame(const unsigned int image_quality_);
+    void serialize_latest_frame_binary(const unsigned int image_quality_, unsigned char *data, unsigned int *length);
 
     static std::string serialized_reset_signal_;
 
@@ -62,11 +62,11 @@ private:
         return pose(0, 3) + pose(1, 3) + pose(2, 3);
     }
 
-    std::string serialize_as_protobuf(const std::vector<openvslam::data::keyframe*>& keyfrms,
+    /* std::string serialize_as_protobuf(const std::vector<openvslam::data::keyframe*>& keyfrms,
                                       const std::vector<openvslam::data::landmark*>& all_landmarks,
                                       const std::set<openvslam::data::landmark*>& local_landmarks,
-                                      const openvslam::Mat44_t& current_camera_pose);
-    std::string serialize_as_binary(const std::vector<openvslam::data::keyframe*>& keyfrms,
+                                      const openvslam::Mat44_t& current_camera_pose); */
+    void serialize_as_binary(const std::vector<openvslam::data::keyframe*>& keyfrms,
                                       const std::vector<openvslam::data::landmark*>& all_landmarks,
                                       const std::set<openvslam::data::landmark*>& local_landmarks,
                                       const openvslam::Mat44_t& current_camera_pose,

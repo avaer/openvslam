@@ -1,4 +1,4 @@
-#include "socket_publisher/data_serializer.h"
+#include "socket_publisher/data_serializer2.h"
 
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
@@ -10,13 +10,13 @@
 #include <opencv2/imgcodecs.hpp>
 
 // map_segment.pb.h will be generated into build/src/socket_publisher/ when make
-#include "map_segment.pb.h"
+// #include "map_segment.pb.h"
 
 namespace socket_publisher {
 
-std::string data_serializer::serialized_reset_signal_{};
+std::string data_serializer2::serialized_reset_signal_{};
 
-data_serializer::data_serializer(const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
+data_serializer2::data_serializer2(const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
                                  const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher,
                                  const unsigned int image_width, const unsigned int image_height)
     : frame_publisher_(frame_publisher), map_publisher_(map_publisher),
@@ -24,10 +24,10 @@ data_serializer::data_serializer(const std::shared_ptr<openvslam::publish::frame
       keyframe_hash_map_(new std::unordered_map<unsigned int, double>), point_hash_map_(new std::unordered_map<unsigned int, double>) {
     const auto tags = std::vector<std::string>{"RESET_ALL"};
     const auto messages = std::vector<std::string>{"reset all data"};
-    data_serializer::serialized_reset_signal_ = serialize_messages(tags, messages);
+    data_serializer2::serialized_reset_signal_ = serialize_messages(tags, messages);
 }
 
-std::string data_serializer::serialize_messages(const std::vector<std::string>& tags, const std::vector<std::string>& messages) {
+/* std::string data_serializer2::serialize_messages(const std::vector<std::string>& tags, const std::vector<std::string>& messages) {
     unsigned int length = std::min(tags.size(), messages.size());
 
     map_segment::map map;
@@ -45,7 +45,7 @@ std::string data_serializer::serialize_messages(const std::vector<std::string>& 
     return base64_encode(cstr, buffer.length());
 }
 
-std::string data_serializer::serialize_map_diff() {
+std::string data_serializer2::serialize_map_diff() {
     std::vector<openvslam::data::keyframe*> keyframes;
     map_publisher_->get_keyframes(keyframes);
 
@@ -63,9 +63,9 @@ std::string data_serializer::serialize_map_diff() {
     current_pose_hash_ = pose_hash;
 
     return serialize_as_protobuf(keyframes, all_landmarks, local_landmarks, current_camera_pose);
-}
+} */
 
-void data_serializer::serialize_map_diff_binary(unsigned char *data, unsigned int *length) {
+void data_serializer2::serialize_map_diff_binary(unsigned char *data, unsigned int *length) {
     std::vector<openvslam::data::keyframe*> keyframes;
     map_publisher_->get_keyframes(keyframes);
 
@@ -78,14 +78,15 @@ void data_serializer::serialize_map_diff_binary(unsigned char *data, unsigned in
     const double pose_hash = get_mat_hash(current_camera_pose);
     if (pose_hash == current_pose_hash_) {
         current_pose_hash_ = pose_hash;
-        return "";
+        *length = 0;
+        return;
     }
     current_pose_hash_ = pose_hash;
 
     serialize_as_binary(keyframes, all_landmarks, local_landmarks, current_camera_pose, data, length);
 }
 
-std::string data_serializer::serialize_latest_frame(const unsigned int image_quality) {
+/* std::string data_serializer2::serialize_latest_frame(const unsigned int image_quality) {
     const auto image = frame_publisher_->draw_frame();
     std::vector<uchar> buf;
     const std::vector<int> params{static_cast<int>(cv::IMWRITE_JPEG_QUALITY), static_cast<int>(image_quality)};
@@ -93,16 +94,16 @@ std::string data_serializer::serialize_latest_frame(const unsigned int image_qua
     const auto char_buf = reinterpret_cast<const unsigned char*>(buf.data());
     const std::string base64_serial = base64_encode(char_buf, buf.size());
     return base64_serial;
-}
+} */
 
-void data_serializer::serialize_latest_frame_binary(const unsigned int image_quality, unsigned char *data, unsigned int *length) {
+void data_serializer2::serialize_latest_frame_binary(const unsigned int image_quality, unsigned char *data, unsigned int *length) {
     const auto image = frame_publisher_->draw_frame();
     unsigned int size = image.total() * image.elemSize();
     memcpy(data, image.ptr(), size);
     *length = size;
 }
 
-std::string data_serializer::serialize_as_protobuf(const std::vector<openvslam::data::keyframe*>& keyfrms,
+/* std::string data_serializer2::serialize_as_protobuf(const std::vector<openvslam::data::keyframe*>& keyfrms,
                                                    const std::vector<openvslam::data::landmark*>& all_landmarks,
                                                    const std::set<openvslam::data::landmark*>& local_landmarks,
                                                    const openvslam::Mat44_t& current_camera_pose) {
@@ -274,9 +275,9 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<openvslam::
 
     const auto* cstr = reinterpret_cast<const unsigned char*>(buffer.c_str());
     return base64_encode(cstr, buffer.length());
-}
+} */
 
-void data_serializer::serialize_as_binary(const std::vector<openvslam::data::keyframe*>& keyfrms,
+void data_serializer2::serialize_as_binary(const std::vector<openvslam::data::keyframe*>& keyfrms,
                                                    const std::vector<openvslam::data::landmark*>& all_landmarks,
                                                    const std::set<openvslam::data::landmark*>& local_landmarks,
                                                    const openvslam::Mat44_t& current_camera_pose,
@@ -386,8 +387,7 @@ void data_serializer::serialize_as_binary(const std::vector<openvslam::data::key
     // 3. landmark registration
 
     {
-      unsigned char *dataPtr = data + index;
-      unsigned int *dataUint32 = (unsigned int *)dataPtr;
+      unsigned int *dataUint32 = (unsigned int *)(data + index);
       dataUint32[0] = all_landmarks.size();
       index += sizeof(unsigned int);
     }
@@ -417,14 +417,14 @@ void data_serializer::serialize_as_binary(const std::vector<openvslam::data::key
 
         // add to protocol buffers
 
-        unsigned char *dataPtr = data + index;
-        unsigned int *dataInt32 = (int *)dataPtr;
-        dataInt32[0] = (unsigned int)id;
-        double *dataDouble = (double *)dataPtr;
+        unsigned int *dataUint32 = (unsigned int *)(data + index);
+        dataUint32[0] = (unsigned int)id;
+        index += sizeof(unsigned int);
+        double *dataDouble = (double *)(data + index);
         dataDouble[1] = pos[0];
         dataDouble[2] = pos[1];
         dataDouble[3] = pos[2];
-        index += sizeof(unsigned int) + 3*sizeof(double);
+        index += 3*sizeof(double);
         /* auto landmark_obj = map.add_landmarks();
         landmark_obj->set_id(id);
         for (int i = 0; i < 3; i++) {
@@ -435,8 +435,7 @@ void data_serializer::serialize_as_binary(const std::vector<openvslam::data::key
         } */
     }
     {
-      unsigned char *dataPtr = data + index;
-      unsigned int *dataUint32 = (unsigned int *)dataPtr;
+      unsigned int *dataUint32 = (unsigned int *)(data + index);
       dataUint32[0] = (*point_hash_map_).size();
       index += sizeof(unsigned int);
     }
@@ -444,8 +443,7 @@ void data_serializer::serialize_as_binary(const std::vector<openvslam::data::key
     for (const auto& itr : *point_hash_map_) {
         const auto id = itr.first;
 
-        unsigned char *dataPtr = data + index;
-        unsigned int *dataUint32 = (unsigned int *)dataPtr;
+        unsigned int *dataUint32 = (unsigned int *)(data + index);
         dataUint32[0] = id;
         index += sizeof(unsigned int);
 
@@ -457,14 +455,12 @@ void data_serializer::serialize_as_binary(const std::vector<openvslam::data::key
     // 4. local landmark registration
 
     {
-      unsigned char *dataPtr = data + index;
-      unsigned int *dataUint32 = (unsigned int *)dataPtr;
+      unsigned int *dataUint32 = (unsigned int *)(data + index);
       dataUint32[0] = local_landmarks.size();
       index += sizeof(unsigned int);
     }
     for (const auto landmark : local_landmarks) {
-        unsigned char *dataPtr = data + index;
-        unsigned int *dataUint32 = (unsigned int *)dataPtr;
+        unsigned int *dataUint32 = (unsigned int *)(data + index);
         dataUint32[0] = landmark->id_;
         index += sizeof(unsigned int);
 
@@ -473,8 +469,7 @@ void data_serializer::serialize_as_binary(const std::vector<openvslam::data::key
 
     // 5. current camera pose registration
     {
-        unsigned char *dataPtr = data + index;
-        memcpy(dataPtr, &current_camera_pose(0), 16*sizeof(double));
+        memcpy(data + index, &current_camera_pose(0), 16*sizeof(double));
         index += 16*sizeof(double);
     }
 
@@ -498,7 +493,7 @@ void data_serializer::serialize_as_binary(const std::vector<openvslam::data::key
     return base64_encode(cstr, buffer.length()); */
 }
 
-std::string data_serializer::base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
+std::string data_serializer2::base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
     static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::stringstream ss;
