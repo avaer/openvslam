@@ -30,7 +30,7 @@ class MonoState {
   // std::vector<double> track_times;
   unsigned int num_frame;
   bool is_not_end;
-  std::unique_ptr<data_serializer2> data_serializer2_;
+  std::unique_ptr<socket_publisher::data_serializer2> data_serializer2_;
 
 public:
   MonoState(
@@ -53,7 +53,7 @@ public:
     const auto camera = cfg->camera_;
     const auto img_cols = (camera->cols_ < 1) ? 640 : camera->cols_;
     const auto img_rows = (camera->rows_ < 1) ? 480 : camera->rows_;
-    data_serializer2_.reset(new data_serializer2(frame_publisher, map_publisher, img_cols, img_rows));
+    data_serializer2_.reset(new socket_publisher::data_serializer2(frame_publisher, map_publisher, img_cols, img_rows));
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
