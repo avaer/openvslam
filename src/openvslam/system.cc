@@ -18,7 +18,7 @@
 
 namespace openvslam {
 
-system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_path)
+system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_data)
     : cfg_(cfg), camera_(cfg->camera_) {
     spdlog::debug("CONSTRUCT: system");
 
@@ -41,11 +41,11 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     std::cout << *cfg_ << std::endl;
 
     // load ORB vocabulary
-    spdlog::info("loading ORB vocabulary: {}", vocab_file_path);
+    spdlog::info("loading ORB vocabulary: {}", vocab_file_data.length());
 #ifdef USE_DBOW2
     bow_vocab_ = new data::bow_vocabulary();
     try {
-        bow_vocab_->loadFromBinaryFile(vocab_file_path);
+        bow_vocab_->loadFromBinaryString(vocab_file_data);
     }
     catch (const std::exception& e) {
         spdlog::critical("wrong path to vocabulary");

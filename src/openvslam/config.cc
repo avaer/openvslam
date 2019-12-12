@@ -10,11 +10,11 @@
 
 namespace openvslam {
 
-config::config(const std::string& config_file_path)
-    : config_file_path_(config_file_path), yaml_node_(YAML::LoadFile(config_file_path)) {
+config::config(const std::string& config_file_data)
+    : /*config_file_path_(config_file_path), */yaml_node_(YAML::Load(config_file_data)) {
     spdlog::debug("CONSTRUCT: config");
 
-    spdlog::info("config file loaded: {}", config_file_path_);
+    spdlog::info("config file loaded: {}", config_file_data.length());
 
     //========================//
     // Load Camera Parameters //

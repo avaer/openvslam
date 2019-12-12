@@ -11,7 +11,7 @@ namespace openvslam {
 class config {
 public:
     //! Constructor
-    explicit config(const std::string& config_file_path);
+    explicit config(const std::string& config_file_data);
 
     //! Destructor
     ~config();
@@ -19,7 +19,7 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const config& cfg);
 
     //! path to config YAML file
-    const std::string config_file_path_;
+    // const std::string config_file_path_;
 
     //! YAML node
     const YAML::Node yaml_node_;
