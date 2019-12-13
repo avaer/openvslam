@@ -17,7 +17,7 @@
 using namespace cv;
 using namespace std;
 
-const char * usage =
+/* const char * usage =
 " \nexample command line for calibration from a live feed.\n"
 "   calibration  -w=4 -h=5 -s=0.025 -o=camera.yml -op -oe\n"
 " \n"
@@ -86,7 +86,7 @@ static void help()
         "\n" );
     printf("\n%s",usage);
     printf( "\n%s", liveCaptureHelp );
-}
+} */
 
 enum { DETECTION = 0, CAPTURING = 1, CALIBRATED = 2 };
 enum Pattern { CHESSBOARD, CIRCLES_GRID, ASYMMETRIC_CIRCLES_GRID };
@@ -194,7 +194,7 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
 }
 
 
-static void saveCameraParams( const string& filename,
+/* static void saveCameraParams( const string& filename,
                        Size imageSize, Size boardSize,
                        float squareSize, float aspectRatio, int flags,
                        const Mat& cameraMatrix, const Mat& distCoeffs,
@@ -255,7 +255,7 @@ static void saveCameraParams( const string& filename,
 
             CV_Assert(rvecs[i].rows == 3 && rvecs[i].cols == 1);
             CV_Assert(tvecs[i].rows == 3 && tvecs[i].cols == 1);
-            //*.t() is MatExpr (not Mat) so we can use assignment operator
+            // *.t() is MatExpr (not Mat) so we can use assignment operator
             r = rvecs[i].t();
             t = tvecs[i].t();
         }
@@ -346,7 +346,7 @@ static bool runAndSave(const string& outputFilename,
                          writeGrid ? newObjPoints : vector<Point3f>(),
                          totalAvgErr );
     return ok;
-}
+} */
 
 class Calibrator {
   Mat view;
