@@ -737,7 +737,7 @@ class Calibrator {
 
 public:
   Calibrator(int width, int height, int type, int boardWidth, int boardHeight) :
-    view(width, height, type),
+    view(height, width, type),
     // view(640, 480, CV_8UC3),
     boardSize(boardWidth, boardHeight),
     pattern(CHESSBOARD)
@@ -771,6 +771,12 @@ public:
             break;
         default:
             return fprintf( stderr, "Unknown pattern type\n" ), -1;
+    }
+
+    if (found) {
+        std::cout << "found" << std::endl;
+    } else {
+        std::cout << "not found" << std::endl;
     }
 
    // improve the found corners' coordinate accuracy
