@@ -167,7 +167,6 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
     objectPoints[0][boardSize.width - 1].x = objectPoints[0][0].x + grid_width;
     newObjPoints = objectPoints[0];
 
-    std::cout << "resize " << objectPoints.size() << " " << imagePoints.size() << std::endl;
     objectPoints.resize(imagePoints.size(),objectPoints[0]);
 
     double rms;
@@ -393,16 +392,16 @@ public:
     } */
 
     if (found) {
-        std::cout << "found" << std::endl;
+        // std::cout << "found" << std::endl;
 
         Mat viewGray;
         cvtColor(view, viewGray, COLOR_BGR2GRAY);
         int winSize = 11;
         cornerSubPix( viewGray, pointbuf, Size(winSize,winSize), Size(-1,-1), TermCriteria( TermCriteria::EPS+TermCriteria::COUNT, 30, 0.0001 ));
         imagePoints.push_back(pointbuf);
-    } else {
+    } /* else {
         std::cout << "not found" << std::endl;
-    }
+    } */
 
     return found;
   }
