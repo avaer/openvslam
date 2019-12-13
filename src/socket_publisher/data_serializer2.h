@@ -41,7 +41,7 @@ public:
     // std::string serialize_latest_frame(const unsigned int image_quality_);
     void serialize_latest_frame_binary(const unsigned int image_quality_, unsigned char *data, unsigned int *length);
 
-    static std::string serialized_reset_signal_;
+    // static std::string serialized_reset_signal_;
 
 private:
     const std::shared_ptr<openvslam::publish::frame_publisher> frame_publisher_;
