@@ -4,6 +4,7 @@
 #include "socket_publisher/publisher.h"
 #endif */
 #include <emscripten.h>
+
 #include "openvslam/system.h"
 #include "openvslam/config.h"
 #include "openvslam/util/stereo_rectifier.h"
@@ -45,6 +46,12 @@
 #define CV_8UC3 CV_MAKETYPE(CV_8U,3)
 #define CV_8UC4 CV_MAKETYPE(CV_8U,4)
 #define CV_8UC(n) CV_MAKETYPE(CV_8U,(n)) */
+
+// main
+
+EMSCRIPTEN_KEEPALIVE void doInit() {
+  spdlog::set_level(spdlog::level::off);
+}
 
 // detection
 
