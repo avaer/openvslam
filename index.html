@@ -761,6 +761,8 @@ header > .login-form.phase-3 > .phaseless-content
 import './three.js';
 import './OrbitControls.js';
 
+(async () => {
+
 const worker = (() => {
   let cbs = [];
   const worker = new Worker('cv-worker.js');
@@ -824,90 +826,93 @@ const videoCtx = videoCanvas.getContext('2d');
 
 const outputTextarea = document.getElementById('output');
 
-console.log('make calibrator 1');
-Promise.all([
-  navigator.mediaDevices.getUserMedia({
+const _initVideo = async () => {
+  const mediaStream = await navigator.mediaDevices.getUserMedia({
     video: true,
-  }),
-  worker.request({
-    method: 'makeCalibrator',
-    width: 640,
-    height: 480,
-    type: 16,
-    boardWidth: 9,
-    boardHeight: 7,
-  })
-])
-  .then(([
-    mediaStream,
-    {calibratorPtr, framebufPtr},
-  ]) => {
-    video.srcObject = mediaStream;
-    const settings = mediaStream.getVideoTracks()[0].getSettings();
-    console.log('got settings 1', settings);
-    const {width, height, frameRate} = settings;
-    videoCanvas.width = width;
-    videoCanvas.height = height;
+  });
+  video.srcObject = mediaStream;
+  const settings = mediaStream.getVideoTracks()[0].getSettings();
+  const {width, height, frameRate} = settings;
+  videoCanvas.width = settings.width;
+  videoCanvas.height = settings.height;
+  return settings;
+};
+const {width, height, frameRate} = await _initVideo();
 
-    console.log('got settings 2', {width, height, frameRate});
+console.log('make calibrator 1');
+const {calibratorPtr, framebufPtr} = await worker.request({
+  method: 'makeCalibrator',
+  width,
+  height,
+  type: 16,
+  boardWidth: 9,
+  boardHeight: 7,
+})
 
-    let frames = 0;
-    const requiredFrames = 50;
-    let running = false;
-    const interval = setInterval(async () => {
-      if (!running) {
-        running = true;
+console.log('got settings 2', {width, height, frameRate});
 
-        const startTime1 = Date.now();
-        console.log('tick 1');
-        videoCtx.drawImage(video, 0, 0);
-        const endTime1 = Date.now();
-        console.log('tick 2', endTime1 - startTime1);
-        const {data: frameData} = videoCtx.getImageData(0, 0, width, height);
-        const endeeTime1 = Date.now();
-        console.log('tick 3', endeeTime1 - endTime1);
+const _calibrate = () => {
+  let frames = 0;
+  const requiredFrames = 50;
+  let running = false;
+  const interval = setInterval(async () => {
+    if (!running) {
+      running = true;
 
-        const startTime2 = Date.now();
-        console.log('worker frame 1', frameData.length);
-        const {ok} = await worker.request({
-          method: 'updateCalibrator',
+      const startTime1 = Date.now();
+      console.log('tick 1');
+      videoCtx.drawImage(video, 0, 0);
+      const endTime1 = Date.now();
+      console.log('tick 2', endTime1 - startTime1);
+      const {data: frameData} = videoCtx.getImageData(0, 0, width, height);
+      const endeeTime1 = Date.now();
+      console.log('tick 3', endeeTime1 - endTime1);
+
+      const startTime2 = Date.now();
+      console.log('worker frame 1', frameData.length);
+      const {ok} = await worker.request({
+        method: 'updateCalibrator',
+        calibratorPtr,
+        framebufPtr,
+        frameData,
+      }, [frameData.buffer]);
+      const endTime2 = Date.now();
+      console.log('worker frame 2', ok, endTime2 - startTime2);
+      // debugger;
+
+      if (ok) {
+        frames++;
+        console.log('got frame', frames, '/', requiredFrames);
+
+        const {ok, cameraMatrix, distCoeffs} = await worker.request({
+          method: 'finishCalibrator',
           calibratorPtr,
-          framebufPtr,
-          frameData,
-        }, [frameData.buffer]);
-        const endTime2 = Date.now();
-        console.log('worker frame 2', ok, endTime2 - startTime2);
-        // debugger;
-
-        if (ok) {
-          frames++;
-          console.log('got frame', frames, '/', requiredFrames);
-
-          const {ok, cameraMatrix, distCoeffs} = await worker.request({
-            method: 'finishCalibrator',
-            calibratorPtr,
-          });
-          console.log('got result', cameraMatrix, distCoeffs);
-          if (document.activeElement !== outputTextarea || frames >= requiredFrames) {
-            outputTextarea.value = JSON.stringify({cameraMatrix, distCoeffs});
-          }
-
-          if (frames >= requiredFrames) {
-            clearInterval(interval);
-          }
+        });
+        console.log('got result', cameraMatrix, distCoeffs);
+        if (document.activeElement !== outputTextarea || frames >= requiredFrames) {
+          outputTextarea.value = JSON.stringify({cameraMatrix, distCoeffs});
         }
 
-        running = false;
+        if (frames >= requiredFrames) {
+          clearInterval(interval);
+        }
       }
-    // }, 1000/frameRate);
-    }, 500);
-  });
+
+      running = false;
+    }
+  // }, 1000/frameRate);
+  }, 500);
+};
+_calibrate();
+
 console.log('make calibrator 2');
 
 function animate(timestamp, frame, referenceSpace) {
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);
+
+})();
     </script>
   </body>
 </html>
