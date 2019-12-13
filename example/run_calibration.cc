@@ -427,7 +427,7 @@ public:
       unsigned int index = 0;
       memcpy(data + index, cameraMatrix.ptr(), 3*3*sizeof(double));
       index += 3*3*sizeof(double);
-      memcpy(data + index, cameraMatrix.ptr(), 8*1*sizeof(double));
+      memcpy(data + index, distCoeffs.ptr(), 8*1*sizeof(double));
       index += 8*1*sizeof(double);
     }
 /* } catch(const cv::Exception &ex) {
