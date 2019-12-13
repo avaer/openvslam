@@ -13,5 +13,5 @@ emcc $FLAGS -std=c++11 -o yaml.o yaml-cpp/src/*.cpp yaml-cpp/include/yaml-cpp/ex
 emcc $FLAGS -o csparse.o g2o/EXTERNAL/csparse/*.c;
 emcc $FLAGS -std=c++11 -o g2o.o g2o/g2o/core/*.cpp g2o/g2o/stuff/*.cpp g2o/g2o/solvers/csparse/*.cpp
 
-emcc $FLAGS -std=c++11 -o calibrate.js opencv/build_wasm/lib/*.a opencv/build_wasm/lib/*.a ./calibrate.cc
+emcc $FLAGS -std=c++11 -o calibrate.js opencv/build_wasm/lib/*.a opencv/build_wasm/3rdparty/lib/libzlib.a ./calibrate.cc
 emcc $FLAGS -std=c++11 -o run_web.js csparse.o dbow.o openvslam.o yaml.o g2o.o opencv/build_wasm/lib/*.a ./example/run_web.cc
