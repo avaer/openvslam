@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <iostream>
-#include <exception>
+// #include <exception>
 
 using namespace cv;
 using namespace std;
@@ -173,16 +173,15 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
     int iFixedPoint = -1;
     if (release_object)
         iFixedPoint = boardSize.width - 1;
-    printf("calibrating\n");
-try {
+// try {
     rms = calibrateCameraRO(objectPoints, imagePoints, imageSize, iFixedPoint,
                             cameraMatrix, distCoeffs, rvecs, tvecs, newObjPoints,
                             flags | CALIB_FIX_K3 | CALIB_USE_LU);
-} catch(const cv::Exception &ex) {
+/* } catch(const cv::Exception &ex) {
    cout << ex.what() << endl;
 } catch(const std::exception &ex) {
    cout << ex.what() << endl;
-}
+} */
     printf("RMS error reported by calibrateCamera: %g\n", rms);
 
     bool ok = checkRange(cameraMatrix) && checkRange(distCoeffs);
@@ -408,7 +407,7 @@ public:
   }
   bool finish(unsigned char *data) {
     bool ok;
-try {
+// try {
     Size imageSize = view.size();
     float squareSize = 1, aspectRatio = 1;
     float grid_width = squareSize * (boardSize.width - 1);
@@ -431,11 +430,11 @@ try {
       memcpy(data + index, cameraMatrix.ptr(), 8*1*sizeof(double));
       index += 8*1*sizeof(double);
     }
-} catch(const cv::Exception &ex) {
+/* } catch(const cv::Exception &ex) {
    cout << ex.what() << endl;
 } catch(const std::exception &ex) {
    cout << ex.what() << endl;
-}
+} */
     return ok;
   }
 };
