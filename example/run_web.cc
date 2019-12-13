@@ -812,11 +812,12 @@ public:
 EMSCRIPTEN_KEEPALIVE Calibrator *make_calibrator(int width, int height, int type, int boardWidth, int boardHeight) {
   return new Calibrator(width, height, type, boardWidth, boardHeight);
 }
-
+EMSCRIPTEN_KEEPALIVE unsigned char *get_framebuf_calibrator(Calibrator *calibrator) {
+  return calibrator->getFrameBuf();
+}
 EMSCRIPTEN_KEEPALIVE bool update_calibrator(Calibrator *calibrator) {
   return calibrator->update();
 }
-
 EMSCRIPTEN_KEEPALIVE bool finish_calibrator(Calibrator *calibrator, unsigned char *data) {
   return calibrator->finish(data);
 }
