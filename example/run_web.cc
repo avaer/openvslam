@@ -48,16 +48,29 @@
 
 // detection
 
+class Lol {
+public:
+    Lol(const char *s) {
+        std::cout << s << std::endl;
+    }
+};
+
 class MonoState {
+  Lol lol1;
   std::shared_ptr<openvslam::config> cfg;
+  Lol lol2;
   openvslam::system SLAM;
+  Lol lol3;
   cv::Mat mask;
   cv::Mat frame;
+  Lol lol4;
   double timestamp;
   // std::vector<double> track_times;
   unsigned int num_frame;
   bool is_not_end;
+  Lol lol5;
   std::unique_ptr<socket_publisher::data_serializer2> data_serializer2_;
+  Lol lol6;
 
 public:
   MonoState(
@@ -65,13 +78,20 @@ public:
     const std::string& config_file_data,
     const std::string& vocab_file_data
   ) :
+    lol1("lol 1"),
     cfg(std::make_shared<openvslam::config>(config_file_data)),
+    lol2("lol 2"),
     SLAM(cfg, vocab_file_data),
+    lol3("lol 3"),
     frame(rows, cols, type),
+    lol4("lol 4"),
     timestamp(0.0),
     num_frame(0),
-    is_not_end(true)
+    is_not_end(true),
+    lol5("lol 5"),
+    lol6("lol 6")
   {
+    std::cout << "slam startup" << std::endl;
     // startup the SLAM process
     SLAM.startup();
 

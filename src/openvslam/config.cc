@@ -11,19 +11,19 @@
 namespace openvslam {
 
 config::config(const std::string& config_file_data)
-    : /*config_file_path_(config_file_path), */yaml_node_(YAML::Load(config_file_data)) {
-    spdlog::debug("CONSTRUCT: config");
+    : /*config_file_path_(config_file_path), */lol1("config 1"), yaml_node_(YAML::Load(config_file_data)), lol2("config 2"), lol3("config 3"), lol4("config 4") {
+    std::cout << "CONSTRUCT: config" << std::endl;
 
-    spdlog::info("config file loaded: {}", config_file_data.length());
+    std::cout << "config file loaded: " << config_file_data.length() << std::endl;
 
     //========================//
     // Load Camera Parameters //
     //========================//
 
-    spdlog::debug("load camera model type");
+    std::cout << "load camera model type" << std::endl;
     const auto camera_model_type = camera::base::load_model_type(yaml_node_);
 
-    spdlog::debug("load camera model parameters");
+    std::cout << "load camera model parameters" << std::endl;
     try {
         switch (camera_model_type) {
             case camera::model_type_t::Perspective: {
@@ -41,7 +41,7 @@ config::config(const std::string& config_file_data)
         }
     }
     catch (const std::exception& e) {
-        spdlog::debug("failed in loading camera model parameters: {}", e.what());
+        std::cout << "failed in loading camera model parameters: " << e.what() << std::endl;
         delete camera_;
         camera_ = nullptr;
         throw;
@@ -51,7 +51,7 @@ config::config(const std::string& config_file_data)
     // Load ORB Parameters //
     //=====================//
 
-    spdlog::debug("load ORB parameters");
+    std::cout << "load ORB parameters" << std::endl;
     try {
         orb_params_ = feature::orb_params(yaml_node_);
     }
@@ -66,9 +66,9 @@ config::config(const std::string& config_file_data)
     // Load Tracking Parameters //
     //==========================//
 
-    spdlog::debug("load tracking parameters");
+    std::cout << "load tracking parameters" << std::endl;
 
-    spdlog::debug("load depth threshold");
+    std::cout << "load depth threshold" << std::endl;
     if (camera_->setup_type_ == camera::setup_type_t::Stereo || camera_->setup_type_ == camera::setup_type_t::RGBD) {
         // ベースライン長の一定倍より遠いdepthは無視する
         const auto depth_thr_factor = yaml_node_["depth_threshold"].as<double>(40.0);
@@ -90,7 +90,7 @@ config::config(const std::string& config_file_data)
         }
     }
 
-    spdlog::debug("load depthmap factor");
+    std::cout << "load depthmap factor" << std::endl;
     if (camera_->setup_type_ == camera::setup_type_t::RGBD) {
         depthmap_factor_ = yaml_node_["depthmap_factor"].as<double>(1.0);
     }
