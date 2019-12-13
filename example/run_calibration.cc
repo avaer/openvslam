@@ -167,6 +167,7 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
     objectPoints[0][boardSize.width - 1].x = objectPoints[0][0].x + grid_width;
     newObjPoints = objectPoints[0];
 
+    std::cout << "resize " << objectPoints.size() << " " << imagePoints.size() << std::endl;
     objectPoints.resize(imagePoints.size(),objectPoints[0]);
 
     double rms;
