@@ -1,3 +1,5 @@
+#include <emscripten.h>
+
 #include "opencv2/core.hpp"
 #include <opencv2/core/utility.hpp>
 #include "opencv2/imgproc.hpp"
@@ -363,6 +365,7 @@ public:
     return view.ptr();
   }
   bool update() {
+    int winSize = 11;
     int delay = 100;
     int mode = CAPTURING;
 
@@ -438,7 +441,7 @@ EMSCRIPTEN_KEEPALIVE bool update_calibrator(Calibrator *calibrator) {
   return calibrator->update();
 }
 
-EMSCRIPTEN_KEEPALIVE Calibrator *finish_calibrator(Calibrator *calibrator, unsigned char *data) {
+EMSCRIPTEN_KEEPALIVE bool finish_calibrator(Calibrator *calibrator, unsigned char *data) {
   return calibrator->finish(data);
 }
 
