@@ -17,7 +17,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 // #include <opencv2/videoio.hpp>
-#include <spdlog/spdlog.h>
+// #include <spdlog/spdlog.h>
 #include <popl.hpp>
 
 #include <socket_publisher/data_serializer2.h>
@@ -46,12 +46,6 @@
 #define CV_8UC3 CV_MAKETYPE(CV_8U,3)
 #define CV_8UC4 CV_MAKETYPE(CV_8U,4)
 #define CV_8UC(n) CV_MAKETYPE(CV_8U,(n)) */
-
-// main
-
-EMSCRIPTEN_KEEPALIVE void doInit() {
-  spdlog::set_level(spdlog::level::off);
-}
 
 // detection
 
