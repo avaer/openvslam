@@ -410,7 +410,7 @@ public:
     bool ok;
 try {
     Size imageSize = view.size();
-    float squareSize, aspectRatio = 1;
+    float squareSize = 1, aspectRatio = 1;
     float grid_width = squareSize * (boardSize.width - 1);
     bool release_object = false;
     int flags = 0;
