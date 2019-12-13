@@ -21,8 +21,11 @@ const height = 10;
 const depth = 10; */
 // let noiserOffset = 0;
 self.Module = {
+  TOTAL_MEMORY: 100 * 1024 * 1024,
   onRuntimeInitialized() {
     // console.log('module loaded', self.Module);
+
+    self.Module.__Z6doInitv();
 
     loaded = true;
     _flushMessages();
@@ -70,7 +73,6 @@ const _handleMessage = data => {
     }
     case 'updateCalibrator': {
       const {calibratorPtr, framebufPtr, frameData} = data;
-      // console.log('update calibrator', calibratorPtr, framebufPtr, frameData.length);
       for (let i3 = 0, i4 = 0; i4 < frameData.length; i3 += 3, i4 += 4) {
         self.Module.HEAPU8[framebufPtr+i3] = frameData[i4];
         self.Module.HEAPU8[framebufPtr+i3+1] = frameData[i4+1];
@@ -105,6 +107,71 @@ const _handleMessage = data => {
           ok,
           cameraMatrix,
           distCoeffs,
+        },
+      });
+
+      allocator.freeAll();
+      break;
+    }
+
+    case 'createMono': {
+      const {rows, cols, type, config_file_data, vocab_file_data} = data;
+
+      const allocator = new Allocator();
+      const configFileData = allocator.alloc(Uint8Array, config_file_data.length);
+      configFileData.set(config_file_data);
+      const vocabFileData = allocator.alloc(Uint8Array, vocab_file_data.length);
+      vocabFileData.set(vocab_file_data);
+
+      const monoPtr = self.Module.__Z11create_monoiiiPKcjS0_j(
+        rows,
+        cols,
+        type,
+        configFileData.offset, configFileData.length,
+        vocabFileData.offset, vocabFileData.length
+      );      
+      const framebufPtr = self.Module.__Z17get_framebuf_monoP9MonoState(monoPtr);
+
+      self.postMessage({
+        result: {
+          monoPtr,
+          framebufPtr,
+        },
+      });
+
+      allocator.freeAll();
+      break;
+    }
+    case 'pushFrameMono': {
+      const {monoPtr, frameData} = data;
+      for (let i3 = 0, i4 = 0; i4 < frameData.length; i3 += 3, i4 += 4) {
+        self.Module.HEAPU8[framebufPtr+i3] = frameData[i4];
+        self.Module.HEAPU8[framebufPtr+i3+1] = frameData[i4+1];
+        self.Module.HEAPU8[framebufPtr+i3+2] = frameData[i4+2];
+      }
+
+      const ok = self.Module.__Z15push_frame_monoP9MonoState(monoPtr);
+
+      self.postMessage({
+        result: {
+          ok,
+        },
+      });
+
+      break;
+    }
+    case 'pullUpdateMono': {
+      const {monoPtr} = data;
+
+      const allocator = new Allocator();
+      const result = allocator.alloc(Uint8Array, 512 * 1024);
+
+      const ok = self.Module.__Z16pull_update_monoP9MonoStatePhPj(monoPtr, result.offset);
+
+      self.postMessage({
+        result: {
+          ok,
+          result,
         },
       });
 
