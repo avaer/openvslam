@@ -21,7 +21,11 @@
 
 #include <socket_publisher/data_serializer2.h>
 
-/* #define CV_8U   0
+/* #define CV_CN_MAX     512
+#define CV_CN_SHIFT   3
+#define CV_DEPTH_MAX  (1 << CV_CN_SHIFT)
+
+#define CV_8U   0
 #define CV_8S   1
 #define CV_16U  2
 #define CV_16S  3
@@ -734,6 +738,7 @@ class Calibrator {
 public:
   Calibrator(int width, int height, int type, int boardWidth, int boardHeight) :
     view(width, height, type),
+    // view(640, 480, CV_8UC3),
     boardSize(boardWidth, boardHeight),
     pattern(CHESSBOARD)
   {}
@@ -751,7 +756,7 @@ public:
     vector<Point2f> pointbuf;
     cvtColor(view, viewGray, COLOR_BGR2GRAY);
 
-    bool found;
+    bool found = false;
     switch( pattern )
     {
         case CHESSBOARD:
@@ -780,7 +785,7 @@ public:
         blink = true;
     }
 
-    return blink;
+    return found;
   }
   bool finish(unsigned char *data) {
     Size imageSize = view.size();
