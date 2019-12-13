@@ -1,3 +1,5 @@
+#include <emscripten.h>
+
 #include "opencv2/core.hpp"
 #include <opencv2/core/utility.hpp>
 #include "opencv2/imgproc.hpp"
@@ -89,6 +91,8 @@ static void help()
 enum { DETECTION = 0, CAPTURING = 1, CALIBRATED = 2 };
 enum Pattern { CHESSBOARD, CIRCLES_GRID, ASYMMETRIC_CIRCLES_GRID };
 
+constexpr Pattern pattern = CHESSBOARD;
+
 static double computeReprojectionErrors(
         const vector<vector<Point3f> >& objectPoints,
         const vector<vector<Point2f> >& imagePoints,
@@ -115,19 +119,19 @@ static double computeReprojectionErrors(
     return std::sqrt(totalErr/totalPoints);
 }
 
-static void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners, Pattern patternType = CHESSBOARD)
+static void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners)
 {
     corners.resize(0);
 
-    switch(patternType)
+    /* switch(patternType)
     {
       case CHESSBOARD:
-      case CIRCLES_GRID:
+      case CIRCLES_GRID: */
         for( int i = 0; i < boardSize.height; i++ )
             for( int j = 0; j < boardSize.width; j++ )
                 corners.push_back(Point3f(float(j*squareSize),
                                           float(i*squareSize), 0));
-        break;
+        /* break;
 
       case ASYMMETRIC_CIRCLES_GRID:
         for( int i = 0; i < boardSize.height; i++ )
@@ -138,11 +142,11 @@ static void calcChessboardCorners(Size boardSize, float squareSize, vector<Point
 
       default:
         CV_Error(Error::StsBadArg, "Unknown pattern type\n");
-    }
+    } */
 }
 
 static bool runCalibration( vector<vector<Point2f> > imagePoints,
-                    Size imageSize, Size boardSize, Pattern patternType,
+                    Size imageSize, Size boardSize,
                     float squareSize, float aspectRatio,
                     float grid_width, bool release_object,
                     int flags, Mat& cameraMatrix, Mat& distCoeffs,
@@ -158,7 +162,7 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
     distCoeffs = Mat::zeros(8, 1, CV_64F);
 
     vector<vector<Point3f> > objectPoints(1);
-    calcChessboardCorners(boardSize, squareSize, objectPoints[0], patternType);
+    calcChessboardCorners(boardSize, squareSize, objectPoints[0]);
     objectPoints[0][boardSize.width - 1].x = objectPoints[0][0].x + grid_width;
     newObjPoints = objectPoints[0];
 
@@ -350,37 +354,26 @@ class Calibrator {
   Mat view;
   Size boardSize;
   vector<vector<Point2f> > imagePoints;
-  clock_t prevTimestamp = 0;
-  Pattern pattern;
 
 public:
   Calibrator(int width, int height, int type, int boardWidth, int boardHeight) :
     view(height, width, type),
     // view(640, 480, CV_8UC3),
-    boardSize(boardWidth, boardHeight),
-    pattern(CHESSBOARD)
+    boardSize(boardWidth, boardHeight)
   {}
   unsigned char *getFrameBuf() {
     return view.ptr();
   }
   bool update() {
-    int winSize = 11;
-    int delay = 100;
-    int mode = CAPTURING;
-
-    Mat viewGray;
-    bool blink = false;
-
     vector<Point2f> pointbuf;
-    cvtColor(view, viewGray, COLOR_BGR2GRAY);
 
     bool found = false;
-    switch( pattern )
+    /* switch( pattern )
     {
-        case CHESSBOARD:
+        case CHESSBOARD: */
             found = findChessboardCorners( view, boardSize, pointbuf,
                 CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_FAST_CHECK | CALIB_CB_NORMALIZE_IMAGE);
-            break;
+            /* break;
         case CIRCLES_GRID:
             found = findCirclesGrid( view, boardSize, pointbuf );
             break;
@@ -389,24 +382,18 @@ public:
             break;
         default:
             return fprintf( stderr, "Unknown pattern type\n" ), -1;
-    }
+    } */
 
     if (found) {
         std::cout << "found" << std::endl;
+
+        Mat viewGray;
+        cvtColor(view, viewGray, COLOR_BGR2GRAY);
+        int winSize = 11;
+        cornerSubPix( viewGray, pointbuf, Size(winSize,winSize), Size(-1,-1), TermCriteria( TermCriteria::EPS+TermCriteria::COUNT, 30, 0.0001 ));
+        imagePoints.push_back(pointbuf);
     } else {
         std::cout << "not found" << std::endl;
-    }
-
-   // improve the found corners' coordinate accuracy
-    if( pattern == CHESSBOARD && found) cornerSubPix( viewGray, pointbuf, Size(winSize,winSize),
-        Size(-1,-1), TermCriteria( TermCriteria::EPS+TermCriteria::COUNT, 30, 0.0001 ));
-
-    if( mode == CAPTURING && found &&
-       (clock() - prevTimestamp > delay*1e-3*CLOCKS_PER_SEC) )
-    {
-        imagePoints.push_back(pointbuf);
-        prevTimestamp = clock();
-        blink = true;
     }
 
     return found;
@@ -424,7 +411,7 @@ public:
     vector<Point3f> newObjPoints;
     double totalAvgErr = 0;
 
-    bool ok = runCalibration(imagePoints, imageSize, boardSize, pattern, squareSize,
+    bool ok = runCalibration(imagePoints, imageSize, boardSize, squareSize,
                    aspectRatio, grid_width, release_object, flags, cameraMatrix, distCoeffs,
                    rvecs, tvecs, reprojErrs, newObjPoints, totalAvgErr);
     if (ok) {
