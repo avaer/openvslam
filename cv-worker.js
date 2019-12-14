@@ -21,7 +21,8 @@ const height = 10;
 const depth = 10; */
 // let noiserOffset = 0;
 self.Module = {
-  TOTAL_MEMORY: 100 * 1024 * 1024,
+  // TOTAL_MEMORY: 200 * 1024 * 1024,
+  mainScriptUrlOrBlob: 'run_web.js',
   onRuntimeInitialized() {
     // console.log('module loaded', self.Module);
 
@@ -54,6 +55,7 @@ class Allocator {
 
 const queue = [];
 let loaded = false;
+// let c = 0;
 const _handleMessage = data => {
   const {method} = data;
   switch (method) {
@@ -139,16 +141,20 @@ const _handleMessage = data => {
         },
       });
 
-      allocator.freeAll();
+      // allocator.freeAll();
       break;
     }
     case 'pushFrameMono': {
-      const {monoPtr, frameData} = data;
+      const {monoPtr, framebufPtr, frameData} = data;
       for (let i3 = 0, i4 = 0; i4 < frameData.length; i3 += 3, i4 += 4) {
         self.Module.HEAPU8[framebufPtr+i3] = frameData[i4];
         self.Module.HEAPU8[framebufPtr+i3+1] = frameData[i4+1];
         self.Module.HEAPU8[framebufPtr+i3+2] = frameData[i4+2];
       }
+      /* if (c++ >= 100) {
+        console.log('frame data', frameData);
+        debugger;
+      } */
 
       const ok = self.Module.__Z15push_frame_monoP9MonoState(monoPtr);
 
@@ -165,13 +171,17 @@ const _handleMessage = data => {
 
       const allocator = new Allocator();
       const result = allocator.alloc(Uint8Array, 512 * 1024);
+      const resultLength = allocator.alloc(Uint32Array, 1);
 
-      const ok = self.Module.__Z16pull_update_monoP9MonoStatePhPj(monoPtr, result.offset);
+      const ok = self.Module.__Z16pull_update_monoP9MonoStatePhPj(monoPtr, result.offset, resultLength.offset);
+      const framebufPtr = self.Module.__Z17get_framebuf_monoP9MonoState(monoPtr);
+      // console.log('got length', resultLength[0]);
 
       self.postMessage({
         result: {
           ok,
-          result,
+          result: result.slice(0, resultLength[0]),
+          framebufPtr,
         },
       });
 

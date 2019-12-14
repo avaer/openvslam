@@ -839,20 +839,23 @@ const _initVideo = async () => {
 };
 const {width, height, frameRate} = await _initVideo();
 
-console.log('make calibrator 1');
-const {calibratorPtr, framebufPtr} = await worker.request({
-  method: 'makeCalibrator',
-  width,
-  height,
-  type: 16,
-  boardWidth: 9,
-  boardHeight: 7,
-})
-
 console.log('got settings 2', {width, height, frameRate});
 
-const _getFrameData = () => videoCtx.getImageData(0, 0, width, height).data;
-const _calibrate = () => {
+const _getFrameData = () => {
+  videoCtx.drawImage(video, 0, 0);
+  return videoCtx.getImageData(0, 0, width, height).data;
+};
+const _calibrate = async () => {
+  console.log('make calibrator 1');
+  const {calibratorPtr, framebufPtr} = await worker.request({
+    method: 'makeCalibrator',
+    width,
+    height,
+    type: 16,
+    boardWidth: 9,
+    boardHeight: 7,
+  })
+
   let frames = 0;
   const requiredFrames = 50;
   let running = false;
@@ -860,14 +863,11 @@ const _calibrate = () => {
     if (!running) {
       running = true;
 
-      const startTime1 = Date.now();
-      console.log('tick 1');
-      videoCtx.drawImage(video, 0, 0);
       const endTime1 = Date.now();
-      console.log('tick 2', endTime1 - startTime1);
+      console.log('tick 1');
       const frameData = _getFrameData();
       const endeeTime1 = Date.now();
-      console.log('tick 3', endeeTime1 - endTime1);
+      console.log('tick 2', endeeTime1 - endTime1);
 
       const startTime2 = Date.now();
       console.log('worker frame 1', frameData.length);
@@ -905,6 +905,7 @@ const _calibrate = () => {
   }, 500);
 };
 // _calibrate();
+// return;
 
 const _fetchArrayBuffer = async u => {
   const res = await fetch(u);
@@ -926,9 +927,9 @@ const _slam = async ({width, height, frameRate, cameraMatrix, distCoeffs}) => {
 # Camera Model #
 #==============#
 
-Camera.name: "LUMIX DMC-GX8 8mm fisheye 1K"
+Camera.name: "unknown camera"
 Camera.setup: "monocular"
-Camera.model: "fisheye"
+Camera.model: "perspective"
 
 Camera.fx: ${cameraMatrix[0].toFixed(8)}
 Camera.fy: ${cameraMatrix[4].toFixed(8)}
@@ -937,34 +938,19 @@ Camera.cy: ${cameraMatrix[5].toFixed(8)}
 
 Camera.k1: ${distCoeffs[0].toFixed(8)}
 Camera.k2: ${distCoeffs[1].toFixed(8)}
-Camera.k3: ${distCoeffs[2].toFixed(8)}
-Camera.k4: ${distCoeffs[3].toFixed(8)}
+Camera.p1: ${distCoeffs[2].toFixed(8)}
+Camera.p2: ${distCoeffs[3].toFixed(8)}
+Camera.k3: ${distCoeffs[4].toFixed(8)}
 
 Camera.fps: ${frameRate}
 Camera.cols: ${width}
 Camera.rows: ${height}
 
 Camera.color_order: "RGB"
-
-#================#
-# ORB Parameters #
-#================#
-
-Feature.max_num_keypoints: 2000
-Feature.scale_factor: 1.2
-Feature.num_levels: 8
-Feature.ini_fast_threshold: 20
-Feature.min_fast_threshold: 7
-
-#========================#
-# Initializer Parameters #
-#========================#
-
-Initializer.scaling_factor: 5.0
 `);
   const vocabArrayBuffer = await _fetchArrayBuffer('orb_vocab.dbow2');
   const vocab_file_data = new Uint8Array(vocabArrayBuffer);
-  const {monoPtr} = await worker.request({
+  let {monoPtr, framebufPtr} = await worker.request({
     method: 'createMono',
     rows,
     cols,
@@ -972,86 +958,113 @@ Initializer.scaling_factor: 5.0
     config_file_data,
     vocab_file_data,
   }, [config_file_data.buffer, vocab_file_data.buffer]);
-  console.log('created mono', monoPtr);
+  console.log('created mono', monoPtr, framebufPtr);
 
   const landmarks = [];
-  const cameraPose = new THREE.Matrix4();
+  let running = false;
   const _raf = async () => {
-    {
-      const frameData = _getFrameData();
-      const {ok} = await worker.request({
-        method: 'pushFrameMono',
-        monoPtr,
-        frameData,
-      }, [frameData.buffer]);
-    }
+    if (!running) {
+      running = true;
 
-    {
-      const {ok, result} = await worker.request({
-        method: 'pullUpdateMono',
-        monoPtr,
-      });
-
-      let index = 0;
-
-      const numLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-      index += Uint32Array.BYTES_PER_ELEMENT;
-      for (let i = 0; i < numLandmarks; i++) {
-        const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-        index += Uint32Array.BYTES_PER_ELEMENT;
-        const position = Float32Array.from(new Float64Array(result.buffer, result.byteOffset + index, 3));
-        index += 3*Float64Array.BYTES_PER_ELEMENT;
-        landmarks.push({id, position, local: false});
+      console.log('raf 1');
+      {
+        const frameData = _getFrameData();
+        const {ok} = await worker.request({
+          method: 'pushFrameMono',
+          monoPtr,
+          framebufPtr,
+          frameData,
+        }, [frameData.buffer]);
       }
+      console.log('raf 2');
 
-      const numRemovedLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-      index += Uint32Array.BYTES_PER_ELEMENT;
-      for (let i = 0; i < numRemovedLandmarks; i++) {
-        const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-        index += Uint32Array.BYTES_PER_ELEMENT;
+      {
+        const {ok, result, framebufPtr: newFramebufPtr} = await worker.request({
+          method: 'pullUpdateMono',
+          monoPtr,
+        });
+        framebufPtr = newFramebufPtr;
 
-        const oldIndex = landmarks.findIndex(l => l.id === id);
-        if (oldIndex !== -1) {
-          landmarks.splice(oldIndex, 1);
+        if (result.length > 0) {
+          let index = 0;
+          const numLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
+          console.log('raf 3', result.length, numLandmarks);
+          index += Uint32Array.BYTES_PER_ELEMENT;
+          for (let i = 0; i < numLandmarks; i++) {
+            console.log('index', index, result.length);
+            const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
+            index += Uint32Array.BYTES_PER_ELEMENT;
+            if ((index%8) !== 0) {
+              index += 8 - (index%8);
+            }
+            const position = Float32Array.from(new Float64Array(result.buffer, result.byteOffset + index, 3));
+            index += 3*Float64Array.BYTES_PER_ELEMENT;
+            landmarks.push({id, position, local: false});
+          }
+
+          console.log('raf 4');
+
+          const numRemovedLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
+          index += Uint32Array.BYTES_PER_ELEMENT;
+          for (let i = 0; i < numRemovedLandmarks; i++) {
+            const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
+            index += Uint32Array.BYTES_PER_ELEMENT;
+
+            const oldIndex = landmarks.findIndex(l => l.id === id);
+            if (oldIndex !== -1) {
+              landmarks.splice(oldIndex, 1);
+            } else {
+              console.warn('failed to remove old landmark', id, landmarks.map(l => l.id));
+            }
+          }
+
+          console.log('raf 5');
+
+          const numLocalLAndmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
+          index += Uint32Array.BYTES_PER_ELEMENT;
+          for (let i = 0; i < landmarks.length; i++) {
+            landmarks[i].local = false;
+          }
+          for (let i = 0; i < numLocalLAndmarks; i++) {
+            const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
+            index += Uint32Array.BYTES_PER_ELEMENT;
+
+            const oldIndex = landmarks.findIndex(l => l.id === id);
+            if (oldIndex !== -1) {
+              landmarks[oldIndex].local = true;
+            } else {
+              console.warn('failed to localize landmark', id, landmarks.map(l => l.id));
+            }
+          }
+
+          console.log('raf 6');
+
+          if ((index%8) !== 0) {
+            index += 8 - (index%8);
+          }
+          camera.matrix.fromArray(new Float64Array(result.buffer, result.byteOffset + index, 16))
+            .decompose(camera.position, camera.quaternion, camera.scale);
+          index += 16*Float64Array.BYTES_PER_ELEMENT;
+
+          console.log('got frame result', camera.position.toArray().join(','));
         } else {
-          console.warn('failed to remove old landmark', id, landmarks.map(l => l.id));
+          console.log('skip frame');
         }
       }
 
-      const numLocalLAndmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-      index += Uint32Array.BYTES_PER_ELEMENT;
-      for (let i = 0; i < landmarks.length; i++) {
-        landmarks[i].local = false;
-      }
-      for (let i = 0; i < numLocalLAndmarks; i++) {
-        const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-        index += Uint32Array.BYTES_PER_ELEMENT;
-
-        const oldIndex = landmarks.findIndex(l => l.id === id);
-        if (oldIndex !== -1) {
-          landmarks[oldIndex].local = true;
-        } else {
-          console.warn('failed to localize landmark', id, landmarks.map(l => l.id));
-        }
-      }
-
-      camera.matrix.fromArray(new Float64Array(result.buffer, result.byteOffset + index, 16))
-        .decompose(camera.position, camera.quaternion, camera.scale);
-      index += 16*Float64Array.BYTES_PER_ELEMENT;
-
-      console.log('got frame result', camera.position.toArray().join(','));
+      running = false;
     }
-
-    requestAnimationFrame(_raf);
   };
-  await _raf();
+  const interval = setInterval(_raf, 1000/frameRate);
 };
 await _slam({
   width,
   height,
   frameRate,
-  "cameraMatrix":{"0":735.4304097846076,"1":0,"2":321.06506824032874,"3":0,"4":686.7486381547048,"5":231.47035769629187,"6":0,"7":0,"8":1},
-  "distCoeffs":{"0":0.12584271865639923,"1":-0.4730137653812508,"2":0.004571826165026919,"3":0.003320676717837572,"4":0,"5":5.30498949456e-313,"6":2.3643616658266277e-308,"7":1.4133999433638615e-306},
+  /* "cameraMatrix":{"0":735.4304097846076,"1":0,"2":321.06506824032874,"3":0,"4":686.7486381547048,"5":231.47035769629187,"6":0,"7":0,"8":1},
+  "distCoeffs":{"0":0.12584271865639923,"1":-0.4730137653812508,"2":0.004571826165026919,"3":0.003320676717837572,"4":0,"5":5.30498949456e-313,"6":2.3643616658266277e-308,"7":1.4133999433638615e-306}, */
+  "cameraMatrix":{"0":661.58032580107,"1":0,"2":332.52480750609914,"3":0,"4":626.9986103396006,"5":285.79513294685904,"6":0,"7":0,"8":1},
+  "distCoeffs":{"0":0.09799644177800233,"1":-0.14371490295503977,"2":0.013551907830970022,"3":-0.0016921487418579573,"4":0,"5":1.42182039547e-312,"6":6.8220297372277415e-307,"7":2.121995791e-314}
 });
 
 console.log('make calibrator 2');
