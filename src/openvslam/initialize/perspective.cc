@@ -5,7 +5,7 @@
 #include "openvslam/solve/homography_solver.h"
 #include "openvslam/solve/fundamental_solver.h"
 
-#include <thread>
+// #include <thread>
 
 #include <spdlog/spdlog.h>
 
@@ -46,10 +46,12 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
     // compute H and F matrices
     auto homography_solver = solve::homography_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, 1.0);
     auto fundamental_solver = solve::fundamental_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, 1.0);
-    std::thread thread_for_H(&solve::homography_solver::find_via_ransac, &homography_solver, num_ransac_iters_, true);
+    homography_solver.find_via_ransac(num_ransac_iters_, true);
+    fundamental_solver.find_via_ransac(num_ransac_iters_, true);
+    /* std::thread thread_for_H(&solve::homography_solver::find_via_ransac, &homography_solver, num_ransac_iters_, true);
     std::thread thread_for_F(&solve::fundamental_solver::find_via_ransac, &fundamental_solver, num_ransac_iters_, true);
     thread_for_H.join();
-    thread_for_F.join();
+    thread_for_F.join(); */
 
     // compute a score
     const auto score_H = homography_solver.get_best_score();
