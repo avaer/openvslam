@@ -440,6 +440,10 @@ a:active {
   right: 0;
   width: 100%;
   height: 100%;
+  z-index: 0;
+}
+.iframe-wrapper canvas {
+  z-index: 1;
 }
 .iframe-wrapper textarea {
   position: absolute;
@@ -448,6 +452,7 @@ a:active {
   right: 0;
   width: 100%;
   height: 50px;
+  z-index: 2;
 }
 .site-urls-content .a-site,
 .avatar-models-content .a-avatar,
@@ -752,6 +757,7 @@ header > .login-form.phase-3 > .phaseless-content
 
       <div class=iframe-wrapper id=iframe-wrapper>
         <video autoplay id=video></video>
+        <canvas id=canvas></canvas>
         <textarea id=output></textarea>
       </div>
     </div>
@@ -762,6 +768,8 @@ import './three.js';
 import './OrbitControls.js';
 
 (async () => {
+
+const localMatrix = new THREE.Matrix4();
 
 const worker = (() => {
   let cbs = [];
@@ -796,10 +804,20 @@ scene.add(container);
 const fov = 60;
 const aspect = window.innerWidth / window.innerHeight;
 const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 1000);
-camera.position.y = 1.5;
-camera.position.z = 0.5;
+// camera.position.y = 1.5;
+camera.position.z = 2;
+camera.lookAt(new THREE.Vector3());
 
+const ambientLight = new THREE.AmbientLight(0x808080);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 2);
+directionalLight.position.set(0.5, 1, 0.5);
+scene.add(directionalLight);
+
+const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({
+  canvas,
   alpha: true,
   antialias: true,
 });
@@ -819,6 +837,50 @@ orbitControls.target.set(0, 1, 0);
 orbitControls.screenSpacePanning = true;
 orbitControls.enableMiddleZoom = false;
 orbitControls.update();
+
+const cubeMesh = new THREE.Mesh(
+  new THREE.BoxBufferGeometry(1, 1, 1),
+  new THREE.MeshPhongMaterial({
+    color: 0xFF00FF,
+  })
+);
+scene.add(cubeMesh);
+
+const pointGeometry = new THREE.BoxBufferGeometry(0.01, 0.01, 0.01).toNonIndexed();
+const landmarkMesh = (() => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(new ArrayBuffer(2 * 1024 * 1024)), 3));
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x0000FF,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.frustumCulled = false;
+  mesh.visible = false;
+  mesh.update = landmarks => {
+    if (landmarks.length > 0) {
+      const positions = new Float32Array(geometry.attributes.position.array.buffer);
+      let index = 0;
+      for (let i = 0; i < landmarks.length; i++) {
+        const {position} = landmarks[i];
+        const newPointGeometry = pointGeometry.clone()
+          .applyMatrix(localMatrix.makeTranslation(position[0], position[1], position[2]));
+        positions.set(newPointGeometry.attributes.position.array, index);
+        index += newPointGeometry.attributes.position.array.length;
+      }
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions.slice(0, index), 3));
+      mesh.visible = true;
+    } else {
+      mesh.visible = false;
+    }
+  };
+  return mesh;
+})();
+scene.add(landmarkMesh);
+
+function animate(timestamp, frame, referenceSpace) {
+  renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(animate);
 
 const video = document.getElementById('video');
 const videoCanvas = document.createElement('canvas');
@@ -961,12 +1023,13 @@ Camera.color_order: "RGB"
   console.log('created mono', monoPtr, framebufPtr);
 
   const landmarks = [];
+  window.landmarks = landmarks;
   let running = false;
   const _raf = async () => {
     if (!running) {
       running = true;
 
-      console.log('raf 1');
+      console.log('raf');
       {
         const frameData = _getFrameData();
         const {ok} = await worker.request({
@@ -976,7 +1039,7 @@ Camera.color_order: "RGB"
           frameData,
         }, [frameData.buffer]);
       }
-      console.log('raf 2');
+      // console.log('raf 2');
 
       {
         const {ok, result, framebufPtr: newFramebufPtr} = await worker.request({
@@ -988,10 +1051,10 @@ Camera.color_order: "RGB"
         if (result.length > 0) {
           let index = 0;
           const numLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-          console.log('raf 3', result.length, numLandmarks);
+          // console.log('raf 3', result.length, numLandmarks);
           index += Uint32Array.BYTES_PER_ELEMENT;
           for (let i = 0; i < numLandmarks; i++) {
-            console.log('index', index, result.length);
+            // console.log('index', index, result.length);
             const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
             index += Uint32Array.BYTES_PER_ELEMENT;
             if ((index%8) !== 0) {
@@ -1002,7 +1065,7 @@ Camera.color_order: "RGB"
             landmarks.push({id, position, local: false});
           }
 
-          console.log('raf 4');
+          // console.log('raf 4');
 
           const numRemovedLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
           index += Uint32Array.BYTES_PER_ELEMENT;
@@ -1018,7 +1081,7 @@ Camera.color_order: "RGB"
             }
           }
 
-          console.log('raf 5');
+          // console.log('raf 5');
 
           const numLocalLAndmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
           index += Uint32Array.BYTES_PER_ELEMENT;
@@ -1037,7 +1100,7 @@ Camera.color_order: "RGB"
             }
           }
 
-          console.log('raf 6');
+          // console.log('raf 6');
 
           if ((index%8) !== 0) {
             index += 8 - (index%8);
@@ -1046,7 +1109,9 @@ Camera.color_order: "RGB"
             .decompose(camera.position, camera.quaternion, camera.scale);
           index += 16*Float64Array.BYTES_PER_ELEMENT;
 
-          console.log('got frame result', camera.position.toArray().join(','));
+          landmarkMesh.update(landmarks);
+
+          console.log('got frame result', camera.position.toArray().join(','), camera.quaternion.toArray().join(','));
         } else {
           console.log('skip frame');
         }
@@ -1066,13 +1131,6 @@ await _slam({
   "cameraMatrix":{"0":661.58032580107,"1":0,"2":332.52480750609914,"3":0,"4":626.9986103396006,"5":285.79513294685904,"6":0,"7":0,"8":1},
   "distCoeffs":{"0":0.09799644177800233,"1":-0.14371490295503977,"2":0.013551907830970022,"3":-0.0016921487418579573,"4":0,"5":1.42182039547e-312,"6":6.8220297372277415e-307,"7":2.121995791e-314}
 });
-
-console.log('make calibrator 2');
-
-function animate(timestamp, frame, referenceSpace) {
-  renderer.render(scene, camera);
-}
-renderer.setAnimationLoop(animate);
 
 })();
     </script>
