@@ -90,11 +90,11 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
 }
 
 system::~system() {
-    global_optimization_thread_.reset(nullptr);
+    // global_optimization_thread_.reset(nullptr);
     delete global_optimizer_;
     global_optimizer_ = nullptr;
 
-    mapping_thread_.reset(nullptr);
+    // mapping_thread_.reset(nullptr);
     delete mapper_;
     mapper_ = nullptr;
 
@@ -121,8 +121,8 @@ void system::startup(const bool need_initialize) {
         tracker_->tracking_state_ = tracker_state_t::Lost;
     }
 
-    mapping_thread_ = std::unique_ptr<std::thread>(new std::thread(&openvslam::mapping_module::run, mapper_));
-    global_optimization_thread_ = std::unique_ptr<std::thread>(new std::thread(&openvslam::global_optimization_module::run, global_optimizer_));
+    // mapping_thread_ = std::unique_ptr<std::thread>(new std::thread(&openvslam::mapping_module::run, mapper_));
+    // global_optimization_thread_ = std::unique_ptr<std::thread>(new std::thread(&openvslam::global_optimization_module::run, global_optimizer_));
 }
 
 void system::shutdown() {
@@ -130,15 +130,15 @@ void system::shutdown() {
     mapper_->request_terminate();
     global_optimizer_->request_terminate();
     // wait until they stop
-    while (!mapper_->is_terminated()
+    /* while (!mapper_->is_terminated()
            || !global_optimizer_->is_terminated()
            || global_optimizer_->loop_BA_is_running()) {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
-    }
+    } */
 
     // wait until the threads stop
-    mapping_thread_->join();
-    global_optimization_thread_->join();
+    // mapping_thread_->join();
+    // global_optimization_thread_->join();
 
     spdlog::info("shutdown SLAM system");
     system_is_running_ = false;

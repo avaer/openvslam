@@ -168,9 +168,9 @@ public:
   }
   ~MonoState() {
     // wait until the loop BA is finished
-    while (SLAM.loop_BA_is_running()) {
+    /* while (SLAM.loop_BA_is_running()) {
       std::this_thread::sleep_for(std::chrono::microseconds(5000));
-    }
+    } */
 
     SLAM.shutdown();
   }
@@ -280,7 +280,7 @@ EMSCRIPTEN_KEEPALIVE void stereo_tracking(
 
     bool is_not_end = true;
     // run the SLAM in another thread
-    std::thread thread([&]() {
+    // std::thread thread([&]() {
         while (is_not_end) {
             // check if the termination of SLAM system is requested or not
             if (SLAM.terminate_is_requested()) {
@@ -313,10 +313,10 @@ EMSCRIPTEN_KEEPALIVE void stereo_tracking(
         }
 
         // wait until the loop BA is finished
-        while (SLAM.loop_BA_is_running()) {
+        /* while (SLAM.loop_BA_is_running()) {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
-        }
-    });
+        } */
+    // });
 
     // run the viewer in the current thread
 /* #ifdef USE_PANGOLIN_VIEWER
@@ -325,7 +325,7 @@ EMSCRIPTEN_KEEPALIVE void stereo_tracking(
     publisher.run();
 #endif */
 
-    thread.join();
+    // thread.join();
 
     // shutdown the SLAM process
     SLAM.shutdown();

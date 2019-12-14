@@ -5,7 +5,7 @@
 #include "openvslam/module/local_map_cleaner.h"
 #include "openvslam/optimize/local_bundle_adjuster.h"
 
-#include <mutex>
+// #include <mutex>
 #include <atomic>
 #include <memory>
 
@@ -129,7 +129,7 @@ private:
     // management for reset process
 
     //! mutex for access to reset procedure
-    mutable std::mutex mtx_reset_;
+    // mutable std::mutex mtx_reset_;
 
     //! Check and execute reset
     bool reset_is_requested() const;
@@ -144,7 +144,7 @@ private:
     // management for pause process
 
     //! mutex for access to pause procedure
-    mutable std::mutex mtx_pause_;
+    // mutable std::mutex mtx_pause_;
 
     //! Pause the mapping module
     void pause();

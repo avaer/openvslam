@@ -20,9 +20,9 @@ global_optimization_module::global_optimization_module(data::map_database* map_d
 
 global_optimization_module::~global_optimization_module() {
     abort_loop_BA();
-    if (thread_for_loop_BA_) {
+    /* if (thread_for_loop_BA_) {
         thread_for_loop_BA_->join();
-    }
+    } */
     spdlog::debug("DESTRUCT: global_optimization_module");
 }
 
@@ -50,7 +50,7 @@ bool global_optimization_module::loop_detector_is_enabled() const {
 }
 
 void global_optimization_module::run() {
-    spdlog::info("start global optimization module");
+    /* spdlog::info("start global optimization module");
 
     is_terminated_ = false;
 
@@ -72,23 +72,25 @@ void global_optimization_module::run() {
             while (is_paused() && !terminate_is_requested() && !reset_is_requested()) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
             }
-        }
+        } */
 
         // check if reset is requested
         if (reset_is_requested()) {
             // reset and continue
             reset();
-            continue;
+            // continue;
+            return;
         }
 
         // if the queue is empty, the following process is not needed
         if (!keyframe_is_queued()) {
-            continue;
+            // continue;
+            return;
         }
 
         // dequeue the keyframe from the queue -> cur_keyfrm_
         {
-            std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+            // std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
             cur_keyfrm_ = keyfrms_queue_.front();
             keyfrms_queue_.pop_front();
         }
@@ -104,7 +106,8 @@ void global_optimization_module::run() {
             // could not find
             // allow the removal of the current keyframe
             cur_keyfrm_->set_to_be_erased();
-            continue;
+            // continue;
+            return;
         }
 
         // validate candidates and select ONE candidate from them
@@ -112,24 +115,25 @@ void global_optimization_module::run() {
             // could not find
             // allow the removal of the current keyframe
             cur_keyfrm_->set_to_be_erased();
-            continue;
+            // continue;
+            return;
         }
 
         correct_loop();
-    }
+    // }
 
-    spdlog::info("terminate global optimization module");
+    // spdlog::info("terminate global optimization module");
 }
 
 void global_optimization_module::queue_keyframe(data::keyframe* keyfrm) {
-    std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+    // std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     if (keyfrm->id_ != 0) {
         keyfrms_queue_.push_back(keyfrm);
     }
 }
 
 bool global_optimization_module::keyframe_is_queued() const {
-    std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+    // std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     return (!keyfrms_queue_.empty());
 }
 
@@ -144,7 +148,7 @@ void global_optimization_module::correct_loop() {
     // 0-1. stop the mapping module and the previous loop bundle adjuster
 
     // pause the mapping module
-    mapper_->request_pause();
+    /* mapper_->request_pause();
     // abort the previous loop bundle adjuster
     if (thread_for_loop_BA_ || loop_bundle_adjuster_->is_running()) {
         abort_loop_BA();
@@ -152,7 +156,7 @@ void global_optimization_module::correct_loop() {
     // wait till the mapping module pauses
     while (!mapper_->is_paused()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
+    } */
 
     // 0-2. update the graph
 
@@ -173,7 +177,7 @@ void global_optimization_module::correct_loop() {
 
     const auto g2o_Sim3_cw_after_correction = loop_detector_->get_Sim3_world_to_current();
     {
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        // std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
         // camera pose of the current keyframe BEFORE loop correction
         const Mat44_t cam_pose_wc_before_correction = cur_keyfrm_->get_cam_pose_inv();
@@ -208,19 +212,20 @@ void global_optimization_module::correct_loop() {
 
     // 5. launch loop BA
 
-    while (loop_bundle_adjuster_->is_running()) {
+    /* while (loop_bundle_adjuster_->is_running()) {
         std::this_thread::sleep_for(std::chrono::microseconds(1000));
     }
     if (thread_for_loop_BA_) {
         thread_for_loop_BA_->join();
         thread_for_loop_BA_.reset(nullptr);
     }
-    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get(), cur_keyfrm_->id_));
+    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get(), cur_keyfrm_->id_)); */
+    loop_bundle_adjuster_->optimize(cur_keyfrm_->id_);
 
     // 6. post-processing
 
     // resume the mapping module
-    mapper_->resume();
+    // mapper_->resume();
 
     // set the loop fusion information to the loop detector
     loop_detector_->set_loop_correct_keyframe_id(cur_keyfrm_->id_);
@@ -320,7 +325,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
                                                               const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction) const {
     // resolve duplications of landmarks between the current keyframe and the loop candidate
     {
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        // std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
         for (unsigned int idx = 0; idx < cur_keyfrm_->num_keypts_; ++idx) {
             auto curr_match_lm_in_cand = curr_match_lms_observed_in_cand.at(idx);
@@ -356,7 +361,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
         std::vector<data::landmark*> lms_to_replace(curr_match_lms_observed_in_cand_covis.size(), nullptr);
         fuser.detect_duplication(neighbor, Sim3_nw_after_correction, curr_match_lms_observed_in_cand_covis, 4, lms_to_replace);
 
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        // std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
         // if any landmark duplication is found, replace it
         for (unsigned int i = 0; i < curr_match_lms_observed_in_cand_covis.size(); ++i) {
             auto lm_to_replace = lms_to_replace.at(i);
@@ -395,11 +400,11 @@ auto global_optimization_module::extract_new_connections(const std::vector<data:
 
 void global_optimization_module::request_reset() {
     {
-        std::lock_guard<std::mutex> lock(mtx_reset_);
+        // std::lock_guard<std::mutex> lock(mtx_reset_);
         reset_is_requested_ = true;
     }
 
-    // BLOCK until reset
+    /* // BLOCK until reset
     while (true) {
         {
             std::lock_guard<std::mutex> lock(mtx_reset_);
@@ -408,16 +413,16 @@ void global_optimization_module::request_reset() {
             }
         }
         std::this_thread::sleep_for(std::chrono::microseconds(3000));
-    }
+    } */
 }
 
 bool global_optimization_module::reset_is_requested() const {
-    std::lock_guard<std::mutex> lock(mtx_reset_);
+    // std::lock_guard<std::mutex> lock(mtx_reset_);
     return reset_is_requested_;
 }
 
 void global_optimization_module::reset() {
-    std::lock_guard<std::mutex> lock(mtx_reset_);
+    // std::lock_guard<std::mutex> lock(mtx_reset_);
     spdlog::info("reset global optimization module");
     keyfrms_queue_.clear();
     loop_detector_->set_loop_correct_keyframe_id(0);
@@ -425,29 +430,29 @@ void global_optimization_module::reset() {
 }
 
 void global_optimization_module::request_pause() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
+    // std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
 }
 
 bool global_optimization_module::pause_is_requested() const {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
+    // std::lock_guard<std::mutex> lock(mtx_pause_);
     return pause_is_requested_;
 }
 
 bool global_optimization_module::is_paused() const {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
+    // std::lock_guard<std::mutex> lock(mtx_pause_);
     return is_paused_;
 }
 
 void global_optimization_module::pause() {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
+    // std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause global optimization module");
     is_paused_ = true;
 }
 
 void global_optimization_module::resume() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
-    std::lock_guard<std::mutex> lock2(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock1(mtx_pause_);
+    // std::lock_guard<std::mutex> lock2(mtx_terminate_);
 
     // if it has been already terminated, cannot resume
     if (is_terminated_) {
@@ -461,22 +466,22 @@ void global_optimization_module::resume() {
 }
 
 void global_optimization_module::request_terminate() {
-    std::lock_guard<std::mutex> lock(mtx_terminate_);
+    // sstd::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
 }
 
 bool global_optimization_module::is_terminated() const {
-    std::lock_guard<std::mutex> lock(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock(mtx_terminate_);
     return is_terminated_;
 }
 
 bool global_optimization_module::terminate_is_requested() const {
-    std::lock_guard<std::mutex> lock(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock(mtx_terminate_);
     return terminate_is_requested_;
 }
 
 void global_optimization_module::terminate() {
-    std::lock_guard<std::mutex> lock(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock(mtx_terminate_);
     is_terminated_ = true;
 }
 

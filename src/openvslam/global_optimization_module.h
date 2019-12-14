@@ -9,8 +9,8 @@
 #include "openvslam/optimize/graph_optimizer.h"
 
 #include <list>
-#include <mutex>
-#include <thread>
+// #include <mutex>
+// #include <thread>
 #include <memory>
 
 namespace openvslam {
@@ -134,7 +134,7 @@ private:
     // management for reset process
 
     //! mutex for access to reset procedure
-    mutable std::mutex mtx_reset_;
+    // mutable std::mutex mtx_reset_;
 
     //! Check and execute reset
     bool reset_is_requested() const;
@@ -149,7 +149,7 @@ private:
     // management for pause process
 
     //! mutex for access to pause procedure
-    mutable std::mutex mtx_pause_;
+    // mutable std::mutex mtx_pause_;
 
     //! Pause the global optimizer
     void pause();
@@ -163,7 +163,7 @@ private:
     // management for terminate process
 
     //! mutex for access to terminate procedure
-    mutable std::mutex mtx_terminate_;
+    // mutable std::mutex mtx_terminate_;
 
     //! Check if termination is requested or not
     bool terminate_is_requested() const;
@@ -193,7 +193,7 @@ private:
     // keyframe queue
 
     //! mutex for access to keyframe queue
-    mutable std::mutex mtx_keyfrm_queue_;
+    // mutable std::mutex mtx_keyfrm_queue_;
 
     //! Check if keyframe is queued
     bool keyframe_is_queued() const;
@@ -213,7 +213,7 @@ private:
     // variables for loop BA
 
     //! thread for running loop BA
-    std::unique_ptr<std::thread> thread_for_loop_BA_ = nullptr;
+    // std::unique_ptr<std::thread> thread_for_loop_BA_ = nullptr;
 };
 
 } // namespace openvslam

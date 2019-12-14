@@ -5,8 +5,8 @@
 #include "openvslam/data/bow_vocabulary.h"
 
 #include <string>
-#include <thread>
-#include <mutex>
+// #include <thread>
+// #include <mutex>
 #include <atomic>
 
 #include <opencv2/core/core.hpp>
@@ -176,12 +176,12 @@ private:
     //! mapping module
     mapping_module* mapper_ = nullptr;
     //! mapping thread
-    std::unique_ptr<std::thread> mapping_thread_ = nullptr;
+    // std::unique_ptr<std::thread> mapping_thread_ = nullptr;
 
     //! global optimization module
     global_optimization_module* global_optimizer_ = nullptr;
     //! global optimization thread
-    std::unique_ptr<std::thread> global_optimization_thread_ = nullptr;
+    // std::unique_ptr<std::thread> global_optimization_thread_ = nullptr;
 
     //! frame publisher
     std::shared_ptr<publish::frame_publisher> frame_publisher_ = nullptr;

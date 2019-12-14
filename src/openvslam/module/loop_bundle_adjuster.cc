@@ -5,7 +5,7 @@
 #include "openvslam/module/loop_bundle_adjuster.h"
 #include "openvslam/optimize/global_bundle_adjuster.h"
 
-#include <thread>
+// #include <thread>
 
 #include <spdlog/spdlog.h>
 
@@ -20,17 +20,17 @@ void loop_bundle_adjuster::set_mapping_module(mapping_module* mapper) {
 }
 
 void loop_bundle_adjuster::count_loop_BA_execution() {
-    std::lock_guard<std::mutex> lock(mtx_thread_);
+    // std::lock_guard<std::mutex> lock(mtx_thread_);
     ++num_exec_loop_BA_;
 }
 
 void loop_bundle_adjuster::abort() {
-    std::lock_guard<std::mutex> lock(mtx_thread_);
+    // std::lock_guard<std::mutex> lock(mtx_thread_);
     abort_loop_BA_ = true;
 }
 
 bool loop_bundle_adjuster::is_running() const {
-    std::lock_guard<std::mutex> lock(mtx_thread_);
+    // std::lock_guard<std::mutex> lock(mtx_thread_);
     return loop_BA_is_running_;
 }
 
@@ -39,7 +39,7 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
 
     unsigned int num_exec_loop_BA = 0;
     {
-        std::lock_guard<std::mutex> lock(mtx_thread_);
+        // std::lock_guard<std::mutex> lock(mtx_thread_);
         loop_BA_is_running_ = true;
         abort_loop_BA_ = false;
         num_exec_loop_BA = num_exec_loop_BA_;
@@ -49,7 +49,7 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
     global_bundle_adjuster.optimize(identifier, &abort_loop_BA_);
 
     {
-        std::lock_guard<std::mutex> lock1(mtx_thread_);
+        // std::lock_guard<std::mutex> lock1(mtx_thread_);
 
         // if count_loop_BA_execution() was called during the loop BA or the loop BA was aborted,
         // cannot update the map
@@ -64,12 +64,12 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
         spdlog::info("updating the map with pose propagation");
 
         // stop mapping module
-        mapper_->request_pause();
+        /* mapper_->request_pause();
         while (!mapper_->is_paused() && !mapper_->is_terminated()) {
             std::this_thread::sleep_for(std::chrono::microseconds(1000));
-        }
+        } */
 
-        std::lock_guard<std::mutex> lock2(data::map_database::mtx_database_);
+        // std::lock_guard<std::mutex> lock2(data::map_database::mtx_database_);
 
         // update the camera pose along the spanning tree from the origin
         std::list<data::keyframe*> keyfrms_to_check;
@@ -138,7 +138,7 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
             }
         }
 
-        mapper_->resume();
+        // mapper_->resume();
         loop_BA_is_running_ = false;
 
         spdlog::info("updated the map");

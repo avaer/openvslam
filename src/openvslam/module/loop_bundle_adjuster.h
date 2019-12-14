@@ -62,7 +62,7 @@ private:
     // thread management
 
     //! mutex for access to pause procedure
-    mutable std::mutex mtx_thread_;
+    // mutable std::mutex mtx_thread_;
 
     //! number of times loop BA is performed
     unsigned int num_exec_loop_BA_ = 0;

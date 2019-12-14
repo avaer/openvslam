@@ -10,7 +10,7 @@
 #include "openvslam/solve/essential_solver.h"
 
 #include <unordered_set>
-#include <thread>
+// #include <thread>
 
 #include <spdlog/spdlog.h>
 
@@ -35,18 +35,18 @@ void mapping_module::set_global_optimization_module(global_optimization_module* 
 }
 
 void mapping_module::run() {
-    spdlog::info("start mapping module");
+    // spdlog::info("start mapping module");
 
-    is_terminated_ = false;
+    /* is_terminated_ = false;
 
     while (true) {
         // waiting time for the other threads
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5)); */
 
         // LOCK
         set_keyframe_acceptability(false);
 
-        // check if termination is requested
+        /* // check if termination is requested
         if (terminate_is_requested()) {
             // terminate and break
             terminate();
@@ -68,21 +68,23 @@ void mapping_module::run() {
             while (is_paused() && !terminate_is_requested() && !reset_is_requested()) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
             }
-        }
+        } */
 
         // check if reset is requested
         if (reset_is_requested()) {
             // reset, UNLOCK and continue
             reset();
             set_keyframe_acceptability(true);
-            continue;
+            // continue;
+            return;
         }
 
         // if the queue is empty, the following process is not needed
         if (!keyframe_is_queued()) {
             // UNLOCK and continue
             set_keyframe_acceptability(true);
-            continue;
+            // continue;
+            return;
         }
 
         // create and extend the map with the new keyframe
@@ -92,24 +94,24 @@ void mapping_module::run() {
 
         // LOCK end
         set_keyframe_acceptability(true);
-    }
+    // }
 
-    spdlog::info("terminate mapping module");
+    // spdlog::info("terminate mapping module");
 }
 
 void mapping_module::queue_keyframe(data::keyframe* keyfrm) {
-    std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+    // std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     keyfrms_queue_.push_back(keyfrm);
     abort_local_BA_ = true;
 }
 
 unsigned int mapping_module::get_num_queued_keyframes() const {
-    std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+    // std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     return keyfrms_queue_.size();
 }
 
 bool mapping_module::keyframe_is_queued() const {
-    std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+    // std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     return !keyfrms_queue_.empty();
 }
 
@@ -128,7 +130,7 @@ void mapping_module::abort_local_BA() {
 void mapping_module::mapping_with_new_keyframe() {
     // dequeue
     {
-        std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+        // std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
         // dequeue -> cur_keyfrm_
         cur_keyfrm_ = keyfrms_queue_.front();
         keyfrms_queue_.pop_front();
@@ -407,29 +409,29 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<data::ke
 
 void mapping_module::request_reset() {
     {
-        std::lock_guard<std::mutex> lock(mtx_reset_);
+        // std::lock_guard<std::mutex> lock(mtx_reset_);
         reset_is_requested_ = true;
     }
 
-    // BLOCK until reset
+    /* // BLOCK until reset
     while (true) {
         {
-            std::lock_guard<std::mutex> lock(mtx_reset_);
+            // std::lock_guard<std::mutex> lock(mtx_reset_);
             if (!reset_is_requested_) {
                 break;
             }
         }
         std::this_thread::sleep_for(std::chrono::microseconds(3000));
-    }
+    } */
 }
 
 bool mapping_module::reset_is_requested() const {
-    std::lock_guard<std::mutex> lock(mtx_reset_);
+    // std::lock_guard<std::mutex> lock(mtx_reset_);
     return reset_is_requested_;
 }
 
 void mapping_module::reset() {
-    std::lock_guard<std::mutex> lock(mtx_reset_);
+    // std::lock_guard<std::mutex> lock(mtx_reset_);
     spdlog::info("reset mapping module");
     keyfrms_queue_.clear();
     local_map_cleaner_->reset();
@@ -437,30 +439,30 @@ void mapping_module::reset() {
 }
 
 void mapping_module::request_pause() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
+    // std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
-    std::lock_guard<std::mutex> lock2(mtx_keyfrm_queue_);
+    // std::lock_guard<std::mutex> lock2(mtx_keyfrm_queue_);
     abort_local_BA_ = true;
 }
 
 bool mapping_module::is_paused() const {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
+    // std::lock_guard<std::mutex> lock(mtx_pause_);
     return is_paused_;
 }
 
 bool mapping_module::pause_is_requested() const {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
+    // std::lock_guard<std::mutex> lock(mtx_pause_);
     return pause_is_requested_ && !force_to_run_;
 }
 
 void mapping_module::pause() {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
+    // std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause mapping module");
     is_paused_ = true;
 }
 
 bool mapping_module::set_force_to_run(const bool force_to_run) {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
+    // std::lock_guard<std::mutex> lock(mtx_pause_);
 
     if (force_to_run && is_paused_) {
         return false;
@@ -471,8 +473,8 @@ bool mapping_module::set_force_to_run(const bool force_to_run) {
 }
 
 void mapping_module::resume() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
-    std::lock_guard<std::mutex> lock2(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock1(mtx_pause_);
+    // std::lock_guard<std::mutex> lock2(mtx_terminate_);
 
     // if it has been already terminated, cannot resume
     if (is_terminated_) {
@@ -492,23 +494,23 @@ void mapping_module::resume() {
 }
 
 void mapping_module::request_terminate() {
-    std::lock_guard<std::mutex> lock(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
 }
 
 bool mapping_module::is_terminated() const {
-    std::lock_guard<std::mutex> lock(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock(mtx_terminate_);
     return is_terminated_;
 }
 
 bool mapping_module::terminate_is_requested() const {
-    std::lock_guard<std::mutex> lock(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock(mtx_terminate_);
     return terminate_is_requested_;
 }
 
 void mapping_module::terminate() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
-    std::lock_guard<std::mutex> lock2(mtx_terminate_);
+    // std::lock_guard<std::mutex> lock1(mtx_pause_);
+    // std::lock_guard<std::mutex> lock2(mtx_terminate_);
     is_paused_ = true;
     is_terminated_ = true;
 }
