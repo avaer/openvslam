@@ -386,9 +386,10 @@ void data_serializer2::serialize_as_binary(const std::vector<openvslam::data::ke
 
     // 3. landmark registration
 
+    unsigned int *numLandmarksPtr;
     {
       unsigned int *dataUint32 = (unsigned int *)(data + index);
-      dataUint32[0] = all_landmarks.size();
+      numLandmarksPtr = dataUint32;
       index += sizeof(unsigned int);
     }
 
@@ -436,6 +437,8 @@ void data_serializer2::serialize_as_binary(const std::vector<openvslam::data::ke
         for (int i = 0; i < 3; i++) {
             landmark_obj->add_color(rgb[i]);
         } */
+
+        (*numLandmarksPtr)++;
     }
     {
       unsigned int *dataUint32 = (unsigned int *)(data + index);
