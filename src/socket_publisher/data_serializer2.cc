@@ -424,6 +424,9 @@ void data_serializer2::serialize_as_binary(const std::vector<openvslam::data::ke
         dataDouble[1] = pos[0];
         dataDouble[2] = pos[1];
         dataDouble[3] = pos[2];
+        if ((index%8) != 0) {
+          inddex += 8 - (index%8);
+        }
         index += 3*sizeof(double);
         /* auto landmark_obj = map.add_landmarks();
         landmark_obj->set_id(id);
@@ -468,6 +471,9 @@ void data_serializer2::serialize_as_binary(const std::vector<openvslam::data::ke
     }
 
     // 5. current camera pose registration
+    if ((index%8) != 0) {
+      inddex += 8 - (index%8);
+    }
     {
         memcpy(data + index, &current_camera_pose(0), 16*sizeof(double));
         index += 16*sizeof(double);
