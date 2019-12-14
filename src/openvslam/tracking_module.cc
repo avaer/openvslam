@@ -27,6 +27,8 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
       keyfrm_inserter_(cfg_->camera_->setup_type_, cfg_->true_depth_thr_, map_db, bow_db, 0, cfg_->camera_->fps_) {
     spdlog::debug("CONSTRUCT: tracking_module");
 
+    std::cout << "tracking cfg 1" << cfg_->orb_params_.num_levels_ << std::endl;
+
     extractor_left_ = new feature::orb_extractor(cfg_->orb_params_);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
         ini_extractor_left_ = new feature::orb_extractor(cfg_->orb_params_);

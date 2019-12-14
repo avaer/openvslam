@@ -22,6 +22,8 @@ orb_params::orb_params(const unsigned int max_num_keypts, const float scale_fact
             throw std::runtime_error("y_max must be greater than x_min");
         }
     }
+
+    show_parameters();
 }
 
 orb_params::orb_params(const YAML::Node& yaml_node)

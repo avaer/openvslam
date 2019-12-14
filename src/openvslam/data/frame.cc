@@ -8,9 +8,10 @@
 #include "openvslam/feature/orb_extractor.h"
 #include "openvslam/match/stereo.h"
 
-#include <thread>
+// #include <thread>
 
 #include <spdlog/spdlog.h>
+#include <iostream>
 
 namespace openvslam {
 namespace data {
@@ -30,7 +31,7 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
     extract_orb(img_gray, mask);
     num_keypts_ = keypts_.size();
     if (keypts_.empty()) {
-        spdlog::warn("frame {}: cannot extract any keypoints", id_);
+        std::cout << "frame: cannot extract any keypoints: " << id_ << std::endl;
     }
 
     // Undistort keypoints
@@ -61,10 +62,12 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
     update_orb_info();
 
     // Extract ORB feature
-    std::thread thread_left(&frame::extract_orb, this, left_img_gray, mask, image_side::Left);
+    extract_orb(left_img_gray, mask, image_side::Left);
+    extract_orb(right_img_gray, mask, image_side::Right);
+    /* std::thread thread_left(&frame::extract_orb, this, left_img_gray, mask, image_side::Left);
     std::thread thread_right(&frame::extract_orb, this, right_img_gray, mask, image_side::Right);
     thread_left.join();
-    thread_right.join();
+    thread_right.join(); */
     num_keypts_ = keypts_.size();
     if (keypts_.empty()) {
         spdlog::warn("frame {}: cannot extract any keypoints", id_);
@@ -104,7 +107,7 @@ frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double tim
     extract_orb(img_gray, mask);
     num_keypts_ = keypts_.size();
     if (keypts_.empty()) {
-        spdlog::warn("frame {}: cannot extract any keypoints", id_);
+        std::cout << "frame: cannot extract any keypoints: " << id_ << std::endl;
     }
 
     // Undistort keypoints
@@ -157,6 +160,7 @@ void frame::update_orb_info() {
     inv_scale_factors_ = extractor_->get_inv_scale_factors();
     level_sigma_sq_ = extractor_->get_level_sigma_sq();
     inv_level_sigma_sq_ = extractor_->get_inv_level_sigma_sq();
+    std::cout << "update orb info " << num_scale_levels_ << " " << scale_factor_ << " " << log_scale_factor_ << " " << scale_factors_.size() << " " << inv_scale_factors_.size() << " " << level_sigma_sq_.size() << " " << inv_level_sigma_sq_.size() << std::endl;
 }
 
 void frame::compute_bow() {
