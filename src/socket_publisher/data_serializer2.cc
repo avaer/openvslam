@@ -66,13 +66,6 @@ std::string data_serializer2::serialize_map_diff() {
 } */
 
 void data_serializer2::serialize_map_diff_binary(unsigned char *data, unsigned int *length) {
-    std::vector<openvslam::data::keyframe*> keyframes;
-    map_publisher_->get_keyframes(keyframes);
-
-    std::vector<openvslam::data::landmark*> all_landmarks;
-    std::set<openvslam::data::landmark*> local_landmarks;
-    map_publisher_->get_landmarks(all_landmarks, local_landmarks);
-
     const auto current_camera_pose = map_publisher_->get_current_cam_pose();
 
     const double pose_hash = get_mat_hash(current_camera_pose);
@@ -82,6 +75,13 @@ void data_serializer2::serialize_map_diff_binary(unsigned char *data, unsigned i
         return;
     }
     current_pose_hash_ = pose_hash;
+
+    std::vector<openvslam::data::keyframe*> keyframes;
+    map_publisher_->get_keyframes(keyframes);
+
+    std::vector<openvslam::data::landmark*> all_landmarks;
+    std::set<openvslam::data::landmark*> local_landmarks;
+    map_publisher_->get_landmarks(all_landmarks, local_landmarks);
 
     serialize_as_binary(keyframes, all_landmarks, local_landmarks, current_camera_pose, data, length);
 }
