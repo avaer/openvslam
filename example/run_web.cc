@@ -85,6 +85,7 @@ public:
     SLAM(cfg, vocab_file_data),
     lol3("lol 3"),
     frame(rows, cols, type),
+    mask{},
     lol4("lol 4"),
     timestamp(0.0),
     num_frame(0),
