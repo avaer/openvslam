@@ -69,15 +69,15 @@ orb_extractor::orb_extractor(const orb_params& orb_params)
 
 void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArray& in_image_mask,
                             std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors) {
-    std::cout << "extract 1 " << CV_8UC1 << " " << CV_8UC3 << std::endl;
+    // std::cout << "extract 1 " << CV_8UC1 << " " << CV_8UC3 << std::endl;
     if (in_image.empty()) {
-        std::cout << "extract 1.1" << std::endl;
+        // std::cout << "extract 1.1" << std::endl;
         return;
     }
 
     // get cv::Mat of image
     const auto image = in_image.getMat();
-    std::cout << "extract 2 " << image.cols << " " << image.rows << std::endl;
+    // std::cout << "extract 2 " << image.cols << " " << image.rows << std::endl;
     assert(image.type() == CV_8UC1);
 
     // build image pyramid
@@ -85,7 +85,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
 
     // mask initialization
     if (!mask_is_initialized_ && !orb_params_.mask_rects_.empty()) {
-        std::cout << "extract 2.1" << std::endl;
+        // std::cout << "extract 2.1" << std::endl;
         create_rectangle_mask(image.cols, image.rows);
         mask_is_initialized_ = true;
     }
@@ -94,25 +94,25 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
 
     // select mask to use
     if (!in_image_mask.empty()) {
-        std::cout << "extract 3.1" << std::endl;
+        // std::cout << "extract 3.1" << std::endl;
         // Use image_mask if it is available
         const auto image_mask = in_image_mask.getMat();
         assert(image_mask.type() == CV_8UC1);
         compute_fast_keypoints(all_keypts, image_mask);
     }
     else if (!rect_mask_.empty()) {
-        std::cout << "extract 3.2" << std::endl;
+        // std::cout << "extract 3.2" << std::endl;
         // Use rectangle mask if it is available and image_mask is not used
         assert(rect_mask_.type() == CV_8UC1);
         compute_fast_keypoints(all_keypts, rect_mask_);
     }
     else {
-        std::cout << "extract 3.3" << std::endl;
+        // std::cout << "extract 3.3" << std::endl;
         // Do not use any mask if all masks are unavailable
         compute_fast_keypoints(all_keypts, cv::Mat());
     }
 
-    std::cout << "extract 4 " << all_keypts.size() << std::endl;
+    // std::cout << "extract 4 " << all_keypts.size() << std::endl;
 
     cv::Mat descriptors;
 
@@ -128,7 +128,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         descriptors = out_descriptors.getMat();
     }
 
-    std::cout << "extract 4.1 " << num_keypts << " " << orb_params_.num_levels_ << std::endl;
+    // std::cout << "extract 4.1 " << num_keypts << " " << orb_params_.num_levels_ << std::endl;
 
     keypts.clear();
     keypts.reserve(num_keypts);
@@ -155,7 +155,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         keypts.insert(keypts.end(), keypts_at_level.begin(), keypts_at_level.end());
     }
 
-    std::cout << "extract 5 " << keypts.size() << std::endl;
+    // std::cout << "extract 5 " << keypts.size() << std::endl;
 }
 
 unsigned int orb_extractor::get_max_num_keypoints() const {
@@ -296,7 +296,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
 
     constexpr unsigned int overlap = 6;
     constexpr unsigned int cell_size = 64;
-    bool got1 = false, got2 = false, got3 = false, got4 = false, got5 = false;
+    // bool got1 = false, got2 = false, got3 = false, got4 = false, got5 = false;
 
 #ifdef USE_OPENMP
 #pragma omp parallel for
@@ -326,7 +326,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
             if (max_border_y - overlap <= min_y) {
                 continue;
             }
-            got1 = true;
+            // got1 = true;
             unsigned int max_y = min_y + cell_size + overlap;
             if (max_border_y < max_y) {
                 max_y = max_border_y;
@@ -340,7 +340,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                 if (max_border_x - overlap <= min_x) {
                     continue;
                 }
-                got2 = true;
+                // got2 = true;
                 unsigned int max_x = min_x + cell_size + overlap;
                 if (max_border_x < max_x) {
                     max_x = max_border_x;
@@ -353,7 +353,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                         continue;
                     }
                 }
-                got3 = true;
+                // got3 = true;
 
                 std::vector<cv::KeyPoint> keypts_in_cell;
                 cv::FAST(image_pyramid_.at(level).rowRange(min_y, max_y).colRange(min_x, max_x),
@@ -368,7 +368,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                 if (keypts_in_cell.empty()) {
                     continue;
                 }
-                got4 = true;
+                // got4 = true;
 
                 // Collect keypoints for every scale
 #ifdef USE_OPENMP
@@ -382,7 +382,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                         if (!mask.empty() && is_in_mask(min_border_y + keypt.pt.y, min_border_x + keypt.pt.x, scale_factor)) {
                             continue;
                         }
-                        got5 = true;
+                        // got5 = true;
                         keypts_to_distribute.push_back(keypt);
                     }
                 }
@@ -410,7 +410,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
         }
     }
 
-    std::cout << "got keypoints " << got1 << " " << got2 << " " << got3 << " " << got4 << " " << got5 << " " << mask.empty() << std::endl;
+    // std::cout << "got keypoints " << got1 << " " << got2 << " " << got3 << " " << got4 << " " << got5 << " " << mask.empty() << std::endl;
 
     // Compute orientations
     for (unsigned int level = 0; level < orb_params_.num_levels_; ++level) {

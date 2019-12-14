@@ -9,13 +9,6 @@
 
 namespace openvslam {
 
-class Lol2 {
-public:
-    Lol2(const char *s) {
-        std::cout << s << std::endl;
-    }
-};
-
 class config {
 public:
     //! Constructor
@@ -30,9 +23,7 @@ public:
     // const std::string config_file_path_;
 
     //! YAML node
-    Lol2 lol1;
     const YAML::Node yaml_node_;
-    Lol2 lol2;
 
     //! Camera model
     camera::base* camera_ = nullptr;
@@ -40,15 +31,11 @@ public:
     //! ORB feature parameters
     feature::orb_params orb_params_;
 
-    Lol2 lol3;
-
     //! depth threshold
     double true_depth_thr_ = 40.0;
 
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;
-
-    Lol2 lol4;
 };
 
 } // namespace openvslam
