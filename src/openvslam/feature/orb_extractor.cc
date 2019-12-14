@@ -296,6 +296,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
 
     constexpr unsigned int overlap = 6;
     constexpr unsigned int cell_size = 64;
+    bool got1 = false, got2 = false, got3 = false, got4 = false, got5 = false;
 
 #ifdef USE_OPENMP
 #pragma omp parallel for
@@ -325,6 +326,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
             if (max_border_y - overlap <= min_y) {
                 continue;
             }
+            got1 = true;
             unsigned int max_y = min_y + cell_size + overlap;
             if (max_border_y < max_y) {
                 max_y = max_border_y;
@@ -338,6 +340,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                 if (max_border_x - overlap <= min_x) {
                     continue;
                 }
+                got2 = true;
                 unsigned int max_x = min_x + cell_size + overlap;
                 if (max_border_x < max_x) {
                     max_x = max_border_x;
@@ -350,6 +353,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                         continue;
                     }
                 }
+                got3 = true;
 
                 std::vector<cv::KeyPoint> keypts_in_cell;
                 cv::FAST(image_pyramid_.at(level).rowRange(min_y, max_y).colRange(min_x, max_x),
@@ -364,6 +368,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                 if (keypts_in_cell.empty()) {
                     continue;
                 }
+                got4 = true;
 
                 // Collect keypoints for every scale
 #ifdef USE_OPENMP
@@ -377,6 +382,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                         if (!mask.empty() && is_in_mask(min_border_y + keypt.pt.y, min_border_x + keypt.pt.x, scale_factor)) {
                             continue;
                         }
+                        got5 = true;
                         keypts_to_distribute.push_back(keypt);
                     }
                 }
@@ -403,6 +409,8 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
             keypt.size = scaled_patch_size;
         }
     }
+
+    std::cout << "got keypoints " << got1 << " " << got2 << " " << got3 << " " << got4 << " " << got5 << " " << mask.empty() << std::endl;
 
     // Compute orientations
     for (unsigned int level = 0; level < orb_params_.num_levels_; ++level) {
