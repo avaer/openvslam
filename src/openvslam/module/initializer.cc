@@ -9,6 +9,7 @@
 #include "openvslam/optimize/global_bundle_adjuster.h"
 
 #include <spdlog/spdlog.h>
+#include <iostream>
 
 namespace openvslam {
 namespace module {
@@ -55,17 +56,22 @@ unsigned int initializer::get_initial_frame_id() const {
 bool initializer::initialize(data::frame& curr_frm) {
     switch (setup_type_) {
         case camera::setup_type_t::Monocular: {
+            std::cout << "initialize 1 " << (state_ == initializer_state_t::Initializing) << std::endl;
             // construct an initializer if not constructed
             if (state_ == initializer_state_t::NotReady) {
+                std::cout << "initialize 2 " << (state_ == initializer_state_t::Initializing) << std::endl;
                 create_initializer(curr_frm);
                 return false;
             }
 
             // try to initialize
             if (!try_initialize_for_monocular(curr_frm)) {
+                std::cout << "initialize 3 " << (state_ == initializer_state_t::Initializing) << std::endl;
                 // failed
                 return false;
             }
+
+            std::cout << "initialize 4 " << (state_ == initializer_state_t::Initializing) << std::endl;
 
             // create new map if succeeded
             create_map_for_monocular(curr_frm);
@@ -91,11 +97,14 @@ bool initializer::initialize(data::frame& curr_frm) {
     }
 
     // check the state is succeeded or not
+    std::cout << "initialize 5 " << (state_ == initializer_state_t::Initializing) << std::endl;
     if (state_ == initializer_state_t::Succeeded) {
+        std::cout << "initialize 6 " << (state_ == initializer_state_t::Initializing) << std::endl;
         init_frm_id_ = curr_frm.id_;
         return true;
     }
     else {
+        std::cout << "initialize 7 " << (state_ == initializer_state_t::Initializing) << std::endl;
         return false;
     }
 }
@@ -118,6 +127,7 @@ void initializer::create_initializer(data::frame& curr_frm) {
     switch (init_frm_.camera_->model_type_) {
         case camera::model_type_t::Perspective:
         case camera::model_type_t::Fisheye: {
+            std::cout << "construct perspective initializer" << std::endl;
             initializer_ = std::unique_ptr<initialize::perspective>(new initialize::perspective(init_frm_,
                                                                                                 num_ransac_iters_, min_num_triangulated_,
                                                                                                 parallax_deg_thr_, reproj_err_thr_));
@@ -137,10 +147,15 @@ void initializer::create_initializer(data::frame& curr_frm) {
 bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
     assert(state_ == initializer_state_t::Initializing);
 
+    std::cout << "initialize monocular 1 " << (state_ == initializer_state_t::Initializing) << std::endl;
+
     match::area matcher(0.9, true);
     const auto num_matches = matcher.match_in_consistent_area(init_frm_, curr_frm, prev_matched_coords_, init_matches_, 100);
 
+    std::cout << "initialize monocular 2 " << (state_ == initializer_state_t::Initializing) << std::endl;
+
     if (num_matches < min_num_triangulated_) {
+        std::cout << "initialize monocular 3 " << num_matches << " " << min_num_triangulated_ << " " << (state_ == initializer_state_t::Initializing) << std::endl;
         // rebuild the initializer with the next frame
         reset();
         return false;
@@ -148,7 +163,10 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
 
     // try to initialize with the current frame
     assert(initializer_);
-    return initializer_->initialize(curr_frm, init_matches_);
+    std::cout << "initialize monocular 4 " << (state_ == initializer_state_t::Initializing) << std::endl;
+    bool result = initializer_->initialize(curr_frm, init_matches_);
+    std::cout << "initialize monocular 5 " << (state_ == initializer_state_t::Initializing) << " " << std::endl;
+    return result;
 }
 
 bool initializer::create_map_for_monocular(data::frame& curr_frm) {

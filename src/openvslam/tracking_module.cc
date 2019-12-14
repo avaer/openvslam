@@ -13,6 +13,7 @@
 
 #include <chrono>
 #include <unordered_map>
+#include <iostream>
 
 #include <spdlog/spdlog.h>
 
@@ -82,8 +83,11 @@ Mat44_t tracking_module::track_monocular_image(const cv::Mat& img, const double 
     util::convert_to_grayscale(img_gray_, camera_->color_order_);
 
     // create current frame object
+    std::cout << "track monocular 1 " << tracking_state_ << std::endl;
     if (tracking_state_ == tracker_state_t::NotInitialized || tracking_state_ == tracker_state_t::Initializing) {
+        std::cout << "track monocular 2 " << tracking_state_ << std::endl;
         curr_frm_ = data::frame(img_gray_, timestamp, ini_extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
+        std::cout << "track monocular 3 " << curr_frm_.num_keypts_ << " " << curr_frm_.keypts_.size() << " " << curr_frm_.undist_keypts_.size() << " " << curr_frm_.landmarks_.size() << std::endl;
     }
     else {
         curr_frm_ = data::frame(img_gray_, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
@@ -156,10 +160,13 @@ void tracking_module::reset() {
     last_reloc_frm_id_ = 0;
 
     tracking_state_ = tracker_state_t::NotInitialized;
+    std::cout << "track reset" << tracking_state_ << std::endl;
 }
 
 void tracking_module::track() {
+    std::cout << "track 1" << tracking_state_ << std::endl;
     if (tracking_state_ == tracker_state_t::NotInitialized) {
+        std::cout << "track 1.1" << tracking_state_ << std::endl;
         tracking_state_ = tracker_state_t::Initializing;
     }
 
@@ -174,13 +181,19 @@ void tracking_module::track() {
     // LOCK the map database
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
+    std::cout << "track 2" << tracking_state_ << std::endl;
+
     if (tracking_state_ == tracker_state_t::Initializing) {
+        std::cout << "track 3" << tracking_state_ << std::endl;
         if (!initialize()) {
+            std::cout << "track 4" << tracking_state_ << std::endl;
             return;
         }
 
         // update the reference keyframe, local keyframes, and local landmarks
         update_local_map();
+
+        std::cout << "track 5" << tracking_state_ << std::endl;
 
         // pass all of the keyframes to the mapping module
         const auto keyfrms = map_db_->get_all_keyframes();
@@ -190,8 +203,10 @@ void tracking_module::track() {
 
         // state transition to Tracking mode
         tracking_state_ = tracker_state_t::Tracking;
+        std::cout << "track 6" << tracking_state_ << std::endl;
     }
     else {
+        std::cout << "track 7" << tracking_state_ << std::endl;
         // apply replace of landmarks observed in the last frame
         apply_landmark_replace();
         // update the camera pose of the last frame
@@ -215,7 +230,9 @@ void tracking_module::track() {
         }
 
         // state transition
+        std::cout << "track 8" << tracking_state_ << std::endl;
         tracking_state_ = succeeded ? tracker_state_t::Tracking : tracker_state_t::Lost;
+        std::cout << "track 9" << tracking_state_ << std::endl;
 
         // update the frame statistics
         map_db_->update_frame_statistics(curr_frm_, tracking_state_ == tracker_state_t::Lost);
@@ -224,14 +241,14 @@ void tracking_module::track() {
         constexpr float init_retry_thr = 5.0;
         if (tracking_state_ == tracker_state_t::Lost
             && curr_frm_.id_ - initializer_.get_initial_frame_id() < camera_->fps_ * init_retry_thr) {
-            spdlog::info("tracking lost within {} sec after initialization", init_retry_thr);
+            std::cout << "tracking lost within sec after initialization " << init_retry_thr << std::endl;
             system_->request_reset();
             return;
         }
 
         // show message if tracking has been lost
         if (last_tracking_state_ != tracker_state_t::Lost && tracking_state_ == tracker_state_t::Lost) {
-            spdlog::info("tracking lost: frame {}", curr_frm_.id_);
+            std::cout << "tracking lost: frame " << curr_frm_.id_ << std::endl;
         }
 
         // check to insert the new keyframe derived from the current frame
@@ -245,6 +262,7 @@ void tracking_module::track() {
                 curr_frm_.landmarks_.at(idx) = nullptr;
             }
         }
+        std::cout << "track 10" << tracking_state_ << std::endl;
     }
 
     // store the relative pose from the reference keyframe to the current frame
@@ -261,8 +279,11 @@ bool tracking_module::initialize() {
     // try to initialize with the current frame
     initializer_.initialize(curr_frm_);
 
+    std::cout << "tracking initialize 1 " << (initializer_.get_state() == module::initializer_state_t::Wrong) << " " << (initializer_.get_state() != module::initializer_state_t::Succeeded) << std::endl;
+
     // if map building was failed -> reset the map database
     if (initializer_.get_state() == module::initializer_state_t::Wrong) {
+        std::cout << "tracking initialize 2" << std::endl;
         // reset
         system_->request_reset();
         return false;
@@ -270,8 +291,11 @@ bool tracking_module::initialize() {
 
     // if initializing was failed -> try to initialize with the next frame
     if (initializer_.get_state() != module::initializer_state_t::Succeeded) {
+        std::cout << "tracking initialize 3" << std::endl;
         return false;
     }
+
+    std::cout << "tracking initialize 4" << std::endl;
 
     // succeeded
     return true;

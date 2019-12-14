@@ -29,8 +29,8 @@ class orb_extractor;
 } // namespace feature
 
 // tracker state
-enum class tracker_state_t {
-    NotInitialized,
+enum tracker_state_t {
+    NotInitialized = 0,
     Initializing,
     Tracking,
     Lost

@@ -237,7 +237,11 @@ Mat44_t system::feed_monocular_frame(const cv::Mat& img, const double timestamp,
 
     check_reset_request();
 
+    std::cout << "feed monocular frame 1" << tracker_->tracking_state_ << std::endl;
+
     const Mat44_t cam_pose_cw = tracker_->track_monocular_image(img, timestamp, mask);
+
+    std::cout << "feed monocular frame 2" << tracker_->tracking_state_ << std::endl;
 
     frame_publisher_->update(tracker_);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking) {
