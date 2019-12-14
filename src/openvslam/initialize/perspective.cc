@@ -25,6 +25,7 @@ perspective::~perspective() {
 }
 
 bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>& ref_matches_with_cur) {
+    std::cout << "perspective initialize 1" << std::endl;
     // set the current camera model
     cur_camera_ = cur_frm.camera_;
     // store the keypoints and bearings
@@ -43,6 +44,8 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
     // set the current camera matrix
     cur_cam_matrix_ = get_camera_matrix(cur_frm.camera_);
 
+    std::cout << "perspective initialize 2" << std::endl;
+
     // compute H and F matrices
     auto homography_solver = solve::homography_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, 1.0);
     auto fundamental_solver = solve::fundamental_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, 1.0);
@@ -53,6 +56,8 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
     thread_for_H.join();
     thread_for_F.join(); */
 
+    std::cout << "perspective initialize 3" << std::endl;
+
     // compute a score
     const auto score_H = homography_solver.get_best_score();
     const auto score_F = fundamental_solver.get_best_score();
@@ -60,16 +65,19 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
 
     // select a case according to the score
     if (0.40 < rel_score_H && homography_solver.solution_is_valid()) {
+        std::cout << "perspective initialize 4.1" << std::endl;
         const Mat33_t H_ref_to_cur = homography_solver.get_best_H_21();
         const auto is_inlier_match = homography_solver.get_inlier_matches();
         return reconstruct_with_H(H_ref_to_cur, is_inlier_match);
     }
     else if (fundamental_solver.solution_is_valid()) {
+        std::cout << "perspective initialize 4.2" << std::endl;
         const Mat33_t F_ref_to_cur = fundamental_solver.get_best_F_21();
         const auto is_inlier_match = fundamental_solver.get_inlier_matches();
         return reconstruct_with_F(F_ref_to_cur, is_inlier_match);
     }
     else {
+        std::cout << "perspective initialize 4.3" << std::endl;
         return false;
     }
 }
