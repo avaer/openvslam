@@ -392,6 +392,7 @@ void data_serializer2::serialize_as_binary(const std::vector<openvslam::data::ke
       numLandmarksPtr = dataUint32;
       index += sizeof(unsigned int);
     }
+    *numLandmarksPtr = 0;
 
     std::unordered_map<unsigned int, double> next_point_hash_map;
     for (const auto landmark : all_landmarks) {
