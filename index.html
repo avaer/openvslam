@@ -1075,7 +1075,7 @@ Camera.color_order: "RGB"
         if (result.length > 0) {
           let index = 0;
           const numLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-          // console.log('raf 3', result.length, numLandmarks);
+          /* // console.log('raf 3', result.length, numLandmarks);
           index += Uint32Array.BYTES_PER_ELEMENT;
           for (let i = 0; i < numLandmarks; i++) {
             // console.log('index', index, result.length);
@@ -1087,12 +1087,14 @@ Camera.color_order: "RGB"
             const position = Float32Array.from(new Float64Array(result.buffer, result.byteOffset + index, 3));
             index += 3*Float64Array.BYTES_PER_ELEMENT;
             landmarks.push({id, position, local: false});
+          } */
+          index += Uint32Array.BYTES_PER_ELEMENT;
+          if (numLandmarks > 0) {
+            index += Uint32Array.BYTES_PER_ELEMENT + 3*Float64Array.BYTES_PER_ELEMENT + (numLandmarks-1)*4*Float64Array.BYTES_PER_ELEMENT
           }
 
-          // console.log('raf 4');
-
           const numRemovedLandmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-          index += Uint32Array.BYTES_PER_ELEMENT;
+          /* index += Uint32Array.BYTES_PER_ELEMENT;
           for (let i = 0; i < numRemovedLandmarks; i++) {
             const id = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
             index += Uint32Array.BYTES_PER_ELEMENT;
@@ -1103,12 +1105,11 @@ Camera.color_order: "RGB"
             } else {
               console.warn('failed to remove old landmark', id, landmarks.map(l => l.id));
             }
-          }
-
-          // console.log('raf 5');
+          } */
+          index += Uint32Array.BYTES_PER_ELEMENT + numRemovedLandmarks*Uint32Array.BYTES_PER_ELEMENT;
 
           const numLocalLAndmarks = new Uint32Array(result.buffer, result.byteOffset + index, 1)[0];
-          index += Uint32Array.BYTES_PER_ELEMENT;
+          /* index += Uint32Array.BYTES_PER_ELEMENT;
           for (let i = 0; i < landmarks.length; i++) {
             landmarks[i].local = false;
           }
@@ -1122,9 +1123,8 @@ Camera.color_order: "RGB"
             } else {
               console.warn('failed to localize landmark', id, landmarks.map(l => l.id));
             }
-          }
-
-          // console.log('raf 6');
+          } */
+          index += Uint32Array.BYTES_PER_ELEMENT + numLocalLAndmarks*Uint32Array.BYTES_PER_ELEMENT;
 
           if ((index%8) !== 0) {
             index += 8 - (index%8);
@@ -1135,7 +1135,7 @@ Camera.color_order: "RGB"
 
           // landmarkMesh.update(landmarks);
 
-          // console.log('got frame result', camera.position.toArray().join(','), camera.quaternion.toArray().join(','));
+          console.log('got frame result', camera.position.toArray().join(','), camera.quaternion.toArray().join(','));
         } else {
           console.log('skip frame');
         }
