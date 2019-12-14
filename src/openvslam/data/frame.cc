@@ -253,6 +253,7 @@ Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
 void frame::extract_orb(const cv::Mat& img, const cv::Mat& mask, const image_side& img_side) {
     switch (img_side) {
         case image_side::Left: {
+            std::cout << "extract orb " << (int)(*img.ptr(0, 0)) << " " << (int)(*img.ptr(0, 1)) << " " << (int)(*img.ptr(0, 2)) << " " << (int)(*img.ptr(1, 0)) << " " << (int)(*img.ptr(2, 0)) << std::endl;
             extractor_->extract(img, mask, keypts_, descriptors_);
             break;
         }
