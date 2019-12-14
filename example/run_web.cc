@@ -220,6 +220,11 @@ EMSCRIPTEN_KEEPALIVE MonoState *create_mono(
 ) {
     std::string config_file_data_string(config_file_data, config_file_data_size);
     std::string vocab_file_data_string(vocab_file_data, vocab_file_data_size);
+    std::cout << "free 1" << std::endl;
+    free((void *)config_file_data);
+    std::cout << "free 2" << std::endl;
+    free((void *)vocab_file_data);
+    std::cout << "free 3" << std::endl;
     return new MonoState(rows, cols, type, config_file_data_string, vocab_file_data_string);
 }
 EMSCRIPTEN_KEEPALIVE unsigned char *get_framebuf_mono(MonoState *monoState) {
