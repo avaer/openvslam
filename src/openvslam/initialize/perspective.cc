@@ -65,19 +65,21 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
 
     // select a case according to the score
     if (0.40 < rel_score_H && homography_solver.solution_is_valid()) {
-        // std::cout << "perspective initialize 4.1" << std::endl;
         const Mat33_t H_ref_to_cur = homography_solver.get_best_H_21();
         const auto is_inlier_match = homography_solver.get_inlier_matches();
-        return reconstruct_with_H(H_ref_to_cur, is_inlier_match);
+        bool result = reconstruct_with_H(H_ref_to_cur, is_inlier_match);
+        std::cout << "perspective initialize 4.1 " << result << " " << rel_score_H << " " << score_H << " " << score_F << std::endl;
+        return result;
     }
     else if (fundamental_solver.solution_is_valid()) {
-        // std::cout << "perspective initialize 4.2" << std::endl;
         const Mat33_t F_ref_to_cur = fundamental_solver.get_best_F_21();
         const auto is_inlier_match = fundamental_solver.get_inlier_matches();
-        return reconstruct_with_F(F_ref_to_cur, is_inlier_match);
+        bool result = reconstruct_with_F(F_ref_to_cur, is_inlier_match);
+        std::cout << "perspective initialize 4.2 " << result << " " << rel_score_H << " " << score_H << " " << score_F << std::endl;
+        return result;
     }
     else {
-        // std::cout << "perspective initialize 4.3" << std::endl;
+        std::cout << "perspective initialize 4.3 " << false << " " << rel_score_H << " " << score_H << " " << score_F << std::endl;
         return false;
     }
 }

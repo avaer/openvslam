@@ -160,9 +160,9 @@ public:
   void pushFrame() {
     // if (is_not_end) {
         // check if the termination of SLAM system is requested or not
-        if (SLAM.terminate_is_requested()) {
+        /* if (SLAM.terminate_is_requested()) {
             return;
-        }
+        } */
 
         // is_not_end = video.read(frame); // XXX
         // memcpy(frame.ptr(), frameBuf, frame.total() * frame.elemSize());

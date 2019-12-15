@@ -235,7 +235,7 @@ void system::abort_loop_BA() {
 Mat44_t system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
 
-    check_reset_request();
+    // check_reset_request();
 
     // std::cout << "feed monocular frame 1" << tracker_->tracking_state_ << std::endl;
 

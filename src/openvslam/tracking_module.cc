@@ -84,6 +84,8 @@ Mat44_t tracking_module::track_monocular_image(const cv::Mat& img, const double 
     /* img_gray_ = img;
     util::convert_to_grayscale(img_gray_, camera_->color_order_); */
 
+    const auto s1 = std::chrono::system_clock::now();
+
     // create current frame object
     // std::cout << "track monocular 1 " << tracking_state_ << std::endl;
     if (tracking_state_ == tracker_state_t::NotInitialized || tracking_state_ == tracker_state_t::Initializing) {
@@ -95,7 +97,14 @@ Mat44_t tracking_module::track_monocular_image(const cv::Mat& img, const double 
         curr_frm_ = data::frame(img, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
     }
 
+    const auto s2 = std::chrono::system_clock::now();
+    std::cout << "frame time 1 " << std::chrono::duration_cast<std::chrono::milliseconds>(s2 - s1).count() << std::endl;
+
+    const auto s3 = std::chrono::system_clock::now();
     track();
+    const auto s4 = std::chrono::system_clock::now();
+
+    std::cout << "frame time 2 " << std::chrono::duration_cast<std::chrono::milliseconds>(s4 - s3).count() << std::endl;
 
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -175,20 +184,20 @@ void tracking_module::track() {
     last_tracking_state_ = tracking_state_;
 
     // check if pause is requested
-    check_and_execute_pause();
+    /* check_and_execute_pause();
     while (is_paused()) {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
-    }
+    } */
 
     // LOCK the map database
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    // std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
     // std::cout << "track 2" << tracking_state_ << std::endl;
 
     if (tracking_state_ == tracker_state_t::Initializing) {
         // std::cout << "track 3" << tracking_state_ << std::endl;
         if (!initialize()) {
-            // std::cout << "track 4" << tracking_state_ << std::endl;
+            std::cout << "tracking failed to initialize" << std::endl;
             return;
         }
 
@@ -205,7 +214,7 @@ void tracking_module::track() {
 
         // state transition to Tracking mode
         tracking_state_ = tracker_state_t::Tracking;
-        // std::cout << "track 6" << tracking_state_ << std::endl;
+        std::cout << "tracking initialized" << std::endl;
     }
     else {
         // std::cout << "track 7" << tracking_state_ << std::endl;
@@ -234,7 +243,9 @@ void tracking_module::track() {
         // state transition
         // std::cout << "track 8" << tracking_state_ << std::endl;
         tracking_state_ = succeeded ? tracker_state_t::Tracking : tracker_state_t::Lost;
-        // std::cout << "track 9" << tracking_state_ << std::endl;
+        if (!succeeded) {
+          std::cout << "tracking lost" << std::endl;
+        }
 
         // update the frame statistics
         map_db_->update_frame_statistics(curr_frm_, tracking_state_ == tracker_state_t::Lost);

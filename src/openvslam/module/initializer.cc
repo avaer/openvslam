@@ -155,7 +155,7 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
     // std::cout << "initialize monocular 2 " << (state_ == initializer_state_t::Initializing) << std::endl;
 
     if (num_matches < min_num_triangulated_) {
-        // std::cout << "initialize monocular 3 " << num_matches << " " << min_num_triangulated_ << " " << (state_ == initializer_state_t::Initializing) << std::endl;
+        std::cout << "not enough points " << num_matches << " " << min_num_triangulated_ << std::endl;
         // rebuild the initializer with the next frame
         reset();
         return false;
@@ -165,6 +165,9 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
     assert(initializer_);
     // std::cout << "initialize monocular 4 " << (state_ == initializer_state_t::Initializing) << std::endl;
     bool result = initializer_->initialize(curr_frm, init_matches_);
+    if (!result) {
+      std::cout << "camera init failed" << std::endl;
+    }
     // std::cout << "initialize monocular 5 " << (state_ == initializer_state_t::Initializing) << " " << std::endl;
     return result;
 }
