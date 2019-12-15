@@ -81,18 +81,18 @@ Mat44_t tracking_module::track_monocular_image(const cv::Mat& img, const double 
     const auto start = std::chrono::system_clock::now();
 
     // color conversion
-    img_gray_ = img;
-    util::convert_to_grayscale(img_gray_, camera_->color_order_);
+    /* img_gray_ = img;
+    util::convert_to_grayscale(img_gray_, camera_->color_order_); */
 
     // create current frame object
     // std::cout << "track monocular 1 " << tracking_state_ << std::endl;
     if (tracking_state_ == tracker_state_t::NotInitialized || tracking_state_ == tracker_state_t::Initializing) {
         // std::cout << "track monocular 2 " << tracking_state_ << std::endl;
-        curr_frm_ = data::frame(img_gray_, timestamp, ini_extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
+        curr_frm_ = data::frame(img, timestamp, ini_extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
         // std::cout << "track monocular 3 " << curr_frm_.num_keypts_ << " " << curr_frm_.keypts_.size() << " " << curr_frm_.undist_keypts_.size() << " " << curr_frm_.landmarks_.size() << std::endl;
     }
     else {
-        curr_frm_ = data::frame(img_gray_, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
+        curr_frm_ = data::frame(img, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
     }
 
     track();
